@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TARGET="${TARGET:-/mnt}"
+HOSTNAME_VALUE="${NULL_HOSTNAME:-null}"
+USERNAME_VALUE="${NULL_USERNAME:-null}"
+TIMEZONE_VALUE="${NULL_TIMEZONE:-UTC}"
+ROOT_DEV="$(findmnt -nro SOURCE "$TARGET" 2>/dev/null || true)"
+
+if [[ "${EUID}" -ne 0 ]]; then
+  echo "Run as root." >&2
+  exit 1
+fi
+
+if [[ ! -d "$TARGET" ]] || ! mountpoint -q "$TARGET"; then
+  echo "$TARGET is not mounted." >&2
+  exit 1
+fi
+
+if [[ ! -d "$TARGET/boot" ]] || ! mountpoint -q "$TARGET/boot"; then
+  echo "$TARGET/boot is not mounted." >&2
+  exit 1
+fi
+
+if [[ -z "$ROOT_DEV" ]]; then
+  echo "Could not detect the root device mounted at $TARGET." >&2
+  exit 1
+fi
+
+ROOT_UUID="$(blkid -s UUID -o value "$ROOT_DEV")"
+
+if [[ -z "$ROOT_UUID" ]]; then
+  echo "Could not detect UUID for $ROOT_DEV." >&2
+  exit 1
+fi
+
+read -r -p "Hostname [$HOSTNAME_VALUE]: " INPUT
+HOSTNAME_VALUE="${INPUT:-$HOSTNAME_VALUE}"
+read -r -p "Username [$USERNAME_VALUE]: " INPUT
+USERNAME_VALUE="${INPUT:-$USERNAME_VALUE}"
+read -r -p "Timezone [$TIMEZONE_VALUE]: " INPUT
+TIMEZONE_VALUE="${INPUT:-$TIMEZONE_VALUE}"
+
+if [[ ! -e "/usr/share/zoneinfo/$TIMEZONE_VALUE" ]]; then
+  echo "Timezone $TIMEZONE_VALUE does not exist." >&2
+  exit 1
+fi
+
+pacstrap -K "$TARGET" \
+  base linux linux-firmware mkinitcpio systemd systemd-sysvcompat \
+  amd-ucode intel-ucode sudo nano vim less which man-db man-pages bash-completion \
+  networkmanager iwd openssh btrfs-progs dosfstools e2fsprogs efibootmgr \
+  exfatprogs f2fs-tools grub parted xorg-server \
+  dolphin konsole plasma-desktop plasma-nm plasma-pa plasma-workspace \
+  polkit-kde-agent qt6-wayland sddm xdg-desktop-portal-kde \
+  xdg-user-dirs xdg-utils mesa ttf-dejavu \
+  adwaita-icon-theme papirus-icon-theme archlinux-keyring
+
+genfstab -U "$TARGET" > "$TARGET/etc/fstab"
+
+cat > "$TARGET/root/null-postinstall.sh" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+ln -sf /usr/share/zoneinfo/$TIMEZONE_VALUE /etc/localtime
+hwclock --systohc || true
+sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+locale-gen
+printf 'LANG=en_US.UTF-8\n' > /etc/locale.conf
+printf 'KEYMAP=us\n' > /etc/vconsole.conf
+printf '%s\n' "$HOSTNAME_VALUE" > /etc/hostname
+cat > /etc/hosts <<HOSTS
+127.0.0.1 localhost
+::1 localhost
+127.0.1.1 $HOSTNAME_VALUE.localdomain $HOSTNAME_VALUE
+HOSTS
+useradd -m -G wheel,audio,video,storage,optical -s /bin/bash "$USERNAME_VALUE"
+install -d -m 0755 /etc/sudoers.d
+printf '%%wheel ALL=(ALL:ALL) ALL\n' > /etc/sudoers.d/01-wheel
+chmod 0440 /etc/sudoers.d/01-wheel
+systemctl enable NetworkManager.service
+systemctl enable sddm.service
+bootctl --path=/boot install
+mkdir -p /boot/loader/entries
+cat > /boot/loader/loader.conf <<LOADER
+default null-linux
+timeout 3
+editor no
+LOADER
+cat > /boot/loader/entries/null-linux.conf <<ENTRY
+title Null Linux
+linux /vmlinuz-linux
+initrd /amd-ucode.img
+initrd /intel-ucode.img
+initrd /initramfs-linux.img
+options root=UUID=$ROOT_UUID rw
+ENTRY
+xdg-user-dirs-update
+EOF
+
+chmod +x "$TARGET/root/null-postinstall.sh"
+arch-chroot "$TARGET" /root/null-postinstall.sh
+rm -f "$TARGET/root/null-postinstall.sh"
+
+echo
+echo "Set the root password."
+arch-chroot "$TARGET" passwd root
+echo
+echo "Set the password for $USERNAME_VALUE."
+arch-chroot "$TARGET" passwd "$USERNAME_VALUE"
+echo
+echo "Bootstrap complete."
+echo "If your EFI partition is mounted somewhere other than /boot, adjust the loader before reboot."

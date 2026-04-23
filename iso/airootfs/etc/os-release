@@ -1,0 +1,10 @@
+NAME="Null Linux"
+PRETTY_NAME="Null Linux"
+ID=nulllinux
+BUILD_ID=0.1.0-alpha
+ANSI_COLOR="0;37"
+HOME_URL="https://example.invalid/null-linux"
+DOCUMENTATION_URL="https://example.invalid/null-linux/docs"
+SUPPORT_URL="https://example.invalid/null-linux/support"
+BUG_REPORT_URL="https://example.invalid/null-linux/issues"
+LOGO=archlinux-logo
