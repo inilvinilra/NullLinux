@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Null Linux Network
+Comment=Show Network tools availability
+Exec=konsole -e /usr/local/bin/null-tools-menu network
+Icon=network-workgroup
+Terminal=false
+Categories=Network;Security;X-NullLinux-Network;
