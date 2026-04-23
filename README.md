@@ -45,12 +45,6 @@ Optional clean rebuild:
 ./scripts/build-iso.sh --clean-work
 ```
 
-Optional NullWelcome GUI staging:
-
-```bash
-./scripts/integrate-nullwelcome.sh --from-local /path/to/NullWelcome
-```
-
 By default, artifacts are written to `out/` and temporary build files to `work/`.
 
 ## Quick Test
@@ -77,8 +71,6 @@ See `docs/manual-install.md` for the expected mount layout.
 - Tool taxonomy and menu structure: `docs/tool-categories.md`
 - Release validation checklist: `docs/release-checklist.md`
 - Release prep handover: `docs/release-prep.md`
-- Null Welcome module plan: `docs/null-welcome-module.md`
-- Null Welcome catalog notes: `docs/null-welcome-catalog-notes.md`
 
 ## Milestone
 
@@ -101,6 +93,3 @@ See `docs/manual-install.md` for the expected mount layout.
 - External tool path discovery for category launchers:
   - `/home/tools`
   - `/home/user/tools`
-- Null Welcome entrypoint:
-  - `/usr/local/bin/null-welcome`
-  - `/usr/local/bin/null-welcome-install`

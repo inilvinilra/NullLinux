@@ -6,7 +6,6 @@
 - KDE dark-first baseline is in place
 - BlackArch repository integration is enabled
 - Category-based security menu scaffolding is integrated
-- Null Welcome catalog, validator, backend installer, and launcher are integrated
 - Smoke test and release checklist are wired
 
 ## Key Paths Added or Updated
@@ -31,15 +30,6 @@
 - `iso/airootfs/usr/share/applications/nulllinux-*.desktop`
 - `iso/airootfs/usr/share/desktop-directories/nulllinux-*.directory`
 
-### Null Welcome Module
-
-- `iso/airootfs/usr/share/null-welcome/catalog.yml`
-- `iso/airootfs/usr/local/bin/null-welcome-install`
-- `iso/airootfs/usr/local/bin/null-welcome`
-- `iso/airootfs/usr/share/applications/nulllinux-welcome.desktop`
-- `scripts/null-welcome-validate.py`
-- `scripts/integrate-nullwelcome.sh`
-
 ### Build and Validation Tooling
 
 - `scripts/build-iso.sh`
@@ -51,8 +41,6 @@
 - `README.md`
 - `docs/roadmap.md`
 - `docs/tool-categories.md`
-- `docs/null-welcome-module.md`
-- `docs/null-welcome-catalog-notes.md`
 
 ## Suggested Commit Split
 
@@ -62,10 +50,7 @@
 2. `feat(desktop): add KDE dark defaults and category menu skeleton`
    - KDE profile files, menu definitions, category launchers, tools menu backend
 
-3. `feat(null-welcome): add catalog, validator, installer backend, and launcher`
-   - catalog, validation script, installer flow, desktop entry, integration hook
-
-4. `chore(release): add smoke-test pipeline and release preparation docs`
+3. `chore(release): add smoke-test pipeline and release preparation docs`
    - smoke test script, checklist updates, roadmap/readme/docs synchronization
 
 ## Validation Runbook

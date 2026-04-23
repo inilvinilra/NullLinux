@@ -31,8 +31,6 @@ null ALL=(ALL) ALL
 EOF
 chmod 0440 /etc/sudoers.d/10-null
 chmod 0755 /usr/local/bin/null-tools-menu
-chmod 0755 /usr/local/bin/null-welcome
-chmod 0755 /usr/local/bin/null-welcome-install
 
 systemctl enable NetworkManager.service
 systemctl disable NetworkManager-wait-online.service || true
