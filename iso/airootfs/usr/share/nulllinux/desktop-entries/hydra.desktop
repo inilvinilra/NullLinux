@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Hydra
+Comment=Network logon cracker
+Exec=konsole -e hydra -h
+Icon=utilities-terminal
+Terminal=false
+Categories=NullLinux-RedTeam;

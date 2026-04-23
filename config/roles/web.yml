@@ -1,0 +1,22 @@
+name: Web Pentesting
+description: Web application security testing tools
+packages:
+  - burpsuite
+  - zaproxy
+  - nikto
+  - sqlmap
+  - wfuzz
+  - ffuf
+  - dirb
+  - wpscan
+  - nuclei
+  - httpx
+  - whatweb
+  - arjun
+  - paramspider
+  - commix
+  - xsstrike
+  - dalfox
+  - gospider
+  - hakrawler
+  - sublist3r

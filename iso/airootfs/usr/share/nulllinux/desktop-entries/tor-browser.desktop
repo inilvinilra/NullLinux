@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Tor
+Comment=Anonymity network
+Exec=konsole -e tor
+Icon=preferences-system-privacy
+Terminal=false
+Categories=NullLinux-OPSEC;

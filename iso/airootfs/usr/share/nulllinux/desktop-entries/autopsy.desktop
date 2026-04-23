@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Autopsy
+Comment=Digital forensics platform
+Exec=autopsy
+Icon=drive-harddisk
+Terminal=false
+Categories=NullLinux-Forensics;

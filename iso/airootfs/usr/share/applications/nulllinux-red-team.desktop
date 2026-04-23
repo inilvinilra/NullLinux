@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Null Linux Red Team
-Comment=Show Red Team tools availability
-Exec=konsole -e /usr/local/bin/null-tools-menu red-team
-Icon=security-high
-Terminal=false
-Categories=Security;X-NullLinux-RedTeam;

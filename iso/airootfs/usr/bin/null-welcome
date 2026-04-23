@@ -1,0 +1,252 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION="0.2.0"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'
+
+clear_screen() { printf '\033[2J\033[H'; }
+
+banner() {
+  cat <<EOF
+
+${BOLD}${CYAN}  ███╗   ██╗██╗   ██╗██╗     ██╗
+  ████╗  ██║██║   ██║██║     ██║
+  ██╔██╗ ██║██║   ██║██║     ██║
+  ██║╚██╗██║██║   ██║██║     ██║
+  ██║ ╚████║╚██████╔╝███████╗███████╗
+  ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚══════╝${NC}
+${BOLD}       L I N U X${NC}  ${DIM}v${VERSION}${NC}
+${DIM}  Arch-based Cybersecurity Distribution${NC}
+
+EOF
+}
+
+system_info() {
+  local kernel hostname uptime mem_total mem_used cpu_model de
+  kernel="$(uname -r)"
+  hostname="$(hostname)"
+  uptime="$(uptime -p 2>/dev/null | sed 's/^up //' || echo 'unknown')"
+  mem_total="$(free -h 2>/dev/null | awk '/^Mem:/{print $2}' || echo '?')"
+  mem_used="$(free -h 2>/dev/null | awk '/^Mem:/{print $3}' || echo '?')"
+  cpu_model="$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2 | xargs || echo 'unknown')"
+  de="${XDG_CURRENT_DESKTOP:-unknown}"
+
+  printf "  ${BOLD}%-14s${NC} %s\n" "Hostname:" "$hostname"
+  printf "  ${BOLD}%-14s${NC} %s\n" "Kernel:" "$kernel"
+  printf "  ${BOLD}%-14s${NC} %s\n" "Desktop:" "$de"
+  printf "  ${BOLD}%-14s${NC} %s\n" "CPU:" "$cpu_model"
+  printf "  ${BOLD}%-14s${NC} %s / %s\n" "Memory:" "$mem_used" "$mem_total"
+  printf "  ${BOLD}%-14s${NC} %s\n" "Uptime:" "$uptime"
+  echo ""
+}
+
+network_status() {
+  local ip_addr
+  ip_addr="$(ip -4 addr show scope global 2>/dev/null | grep -oP 'inet \K[\d.]+' | head -1 || echo 'disconnected')"
+  local fw_status
+  fw_status="$(sudo ufw status 2>/dev/null | head -1 || echo 'unknown')"
+  printf "  ${BOLD}%-14s${NC} %s\n" "IP Address:" "$ip_addr"
+  printf "  ${BOLD}%-14s${NC} %s\n" "Firewall:" "$fw_status"
+  echo ""
+}
+
+role_status() {
+  local roles=(redteam blueteam osint opsec network forensics web wireless exploitation)
+  local installed=0
+  for role in "${roles[@]}"; do
+    if [[ -f "/etc/nulllinux/${role}.installed" ]]; then
+      ((installed++))
+    fi
+  done
+  printf "  ${BOLD}%-14s${NC} %d / %d roles installed\n" "Toolkit:" "$installed" "${#roles[@]}"
+  echo ""
+}
+
+show_main() {
+  clear_screen
+  banner
+  system_info
+  network_status
+  role_status
+
+  echo -e "  ${BOLD}Quick Actions${NC}"
+  echo ""
+  echo -e "  ${CYAN}[1]${NC} Install Security Roles        ${CYAN}[5]${NC} System Update"
+  echo -e "  ${CYAN}[2]${NC} View Installed Roles           ${CYAN}[6]${NC} Network Settings"
+  echo -e "  ${CYAN}[3]${NC} Install to Disk                ${CYAN}[7]${NC} Firewall Status"
+  echo -e "  ${CYAN}[4]${NC} Open Documentation             ${CYAN}[8]${NC} About Null Linux"
+  echo ""
+  echo -e "  ${DIM}[q] Quit${NC}"
+  echo ""
+}
+
+menu_install_roles() {
+  clear_screen
+  echo -e "\n${BOLD}${CYAN}  Install Security Roles${NC}\n"
+  echo -e "  ${DIM}Select a role to install via null-toolkit:${NC}\n"
+
+  local roles=(redteam blueteam osint opsec network forensics web wireless exploitation)
+  local descs=(
+    "Offensive security and pentesting"
+    "Defensive security and IR"
+    "Open source intelligence"
+    "Operational security and privacy"
+    "Network analysis and traffic"
+    "Digital forensics"
+    "Web application security"
+    "Wireless network auditing"
+    "Exploit dev and reverse engineering"
+  )
+
+  for i in "${!roles[@]}"; do
+    local status_icon
+    if [[ -f "/etc/nulllinux/${roles[$i]}.installed" ]]; then
+      status_icon="${GREEN}●${NC}"
+    else
+      status_icon="${DIM}○${NC}"
+    fi
+    printf "  ${CYAN}[%d]${NC} %s %-16s %s\n" "$((i+1))" "$status_icon" "${roles[$i]}" "${descs[$i]}"
+  done
+
+  echo -e "\n  ${CYAN}[a]${NC} Install ALL roles"
+  echo -e "  ${DIM}[b] Back${NC}\n"
+  read -r -p "  Choice: " choice
+
+  case "$choice" in
+    [1-9])
+      local idx=$((choice-1))
+      if [[ $idx -lt ${#roles[@]} ]]; then
+        echo ""
+        sudo null-toolkit install "${roles[$idx]}"
+        echo ""
+        read -r -p "  Press Enter to continue..."
+      fi
+      ;;
+    a|A)
+      echo ""
+      for role in "${roles[@]}"; do
+        sudo null-toolkit install "$role"
+      done
+      echo ""
+      read -r -p "  Press Enter to continue..."
+      ;;
+    b|B) return ;;
+  esac
+}
+
+menu_view_roles() {
+  clear_screen
+  echo -e "\n${BOLD}${CYAN}  Installed Roles${NC}\n"
+  null-toolkit list
+  echo ""
+  read -r -p "  Press Enter to continue..."
+}
+
+menu_install_disk() {
+  clear_screen
+  echo -e "\n${BOLD}${CYAN}  Install Null Linux to Disk${NC}\n"
+  echo -e "  ${YELLOW}This will launch the Null Linux installer.${NC}"
+  echo -e "  ${DIM}Make sure your target disk is mounted at /mnt with /mnt/boot.${NC}"
+  echo -e "  ${DIM}See: docs/manual-install.md for partition layout.${NC}\n"
+  read -r -p "  Launch installer? [y/N]: " confirm
+  if [[ "${confirm,,}" == "y" ]]; then
+    if command -v null-install >/dev/null 2>&1; then
+      sudo null-install
+    else
+      sudo null-bootstrap
+    fi
+  fi
+}
+
+menu_docs() {
+  clear_screen
+  echo -e "\n${BOLD}${CYAN}  Documentation${NC}\n"
+  echo -e "  ${CYAN}[1]${NC} Open README"
+  echo -e "  ${CYAN}[2]${NC} Open Roadmap"
+  echo -e "  ${CYAN}[3]${NC} Open Manual Install Guide"
+  echo -e "  ${CYAN}[4]${NC} Open GitHub Repository"
+  echo -e "  ${DIM}[b] Back${NC}\n"
+  read -r -p "  Choice: " choice
+
+  case "$choice" in
+    1) xdg-open "https://github.com/xredjhon/NullLinux#readme" 2>/dev/null || echo "  Could not open browser." ;;
+    2) xdg-open "https://github.com/xredjhon/NullLinux/blob/main/docs/roadmap.md" 2>/dev/null || echo "  Could not open browser." ;;
+    3) xdg-open "https://github.com/xredjhon/NullLinux/blob/main/docs/manual-install.md" 2>/dev/null || echo "  Could not open browser." ;;
+    4) xdg-open "https://github.com/xredjhon/NullLinux" 2>/dev/null || echo "  Could not open browser." ;;
+    b|B) return ;;
+  esac
+  read -r -p "  Press Enter to continue..."
+}
+
+menu_update() {
+  clear_screen
+  echo -e "\n${BOLD}${CYAN}  System Update${NC}\n"
+  sudo pacman -Syu
+  echo ""
+  read -r -p "  Press Enter to continue..."
+}
+
+menu_network() {
+  clear_screen
+  echo -e "\n${BOLD}${CYAN}  Network Settings${NC}\n"
+  nmcli device status 2>/dev/null || echo "  NetworkManager not available."
+  echo ""
+  nmcli connection show 2>/dev/null || true
+  echo ""
+  read -r -p "  Press Enter to continue..."
+}
+
+menu_firewall() {
+  clear_screen
+  echo -e "\n${BOLD}${CYAN}  Firewall Status${NC}\n"
+  sudo ufw status verbose 2>/dev/null || echo "  ufw not available."
+  echo ""
+  read -r -p "  Press Enter to continue..."
+}
+
+menu_about() {
+  clear_screen
+  echo ""
+  banner
+  echo -e "  ${BOLD}About Null Linux${NC}\n"
+  echo -e "  Null Linux is an Arch-based cybersecurity distribution"
+  echo -e "  with a KDE Plasma dark desktop, role-based security"
+  echo -e "  tooling, and access to Arch, BlackArch, and Chaotic-AUR"
+  echo -e "  repositories.\n"
+  echo -e "  ${BOLD}Version:${NC}    ${VERSION}"
+  echo -e "  ${BOLD}Desktop:${NC}    KDE Plasma (Breeze Dark)"
+  echo -e "  ${BOLD}Repos:${NC}      Arch + BlackArch + Chaotic-AUR"
+  echo -e "  ${BOLD}GitHub:${NC}     github.com/xredjhon/NullLinux"
+  echo -e "  ${BOLD}License:${NC}    MIT\n"
+  read -r -p "  Press Enter to continue..."
+}
+
+main() {
+  while true; do
+    show_main
+    read -r -p "  Choice: " choice
+    case "$choice" in
+      1) menu_install_roles ;;
+      2) menu_view_roles ;;
+      3) menu_install_disk ;;
+      4) menu_docs ;;
+      5) menu_update ;;
+      6) menu_network ;;
+      7) menu_firewall ;;
+      8) menu_about ;;
+      q|Q) clear_screen; exit 0 ;;
+      *) ;;
+    esac
+  done
+}
+
+main "$@"

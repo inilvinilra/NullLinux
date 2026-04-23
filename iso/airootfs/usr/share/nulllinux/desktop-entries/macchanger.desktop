@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=macchanger
+Comment=MAC address spoofing utility
+Exec=konsole -e macchanger --help
+Icon=preferences-system-privacy
+Terminal=false
+Categories=NullLinux-OPSEC;

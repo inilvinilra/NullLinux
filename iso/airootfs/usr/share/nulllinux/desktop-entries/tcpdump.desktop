@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=tcpdump
+Comment=Command-line packet analyzer
+Exec=konsole -e sudo tcpdump --help
+Icon=network-workgroup
+Terminal=false
+Categories=NullLinux-Network;NullLinux-BlueTeam;

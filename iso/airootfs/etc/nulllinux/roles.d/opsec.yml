@@ -1,0 +1,19 @@
+name: OPSEC
+description: Operational security, privacy, and anonymity tools
+packages:
+  - tor
+  - torsocks
+  - proxychains-ng
+  - macchanger
+  - bleachbit
+  - firejail
+  - apparmor
+  - mat2
+  - onionshare
+  - i2pd
+  - kloak
+  - secure-delete
+  - veracrypt
+  - keepassxc
+  - age
+  - gnupg

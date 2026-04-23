@@ -1,0 +1,9 @@
+[org.kde.kdecoration2]
+library=org.kde.breeze
+theme=Breeze
+
+[Compositing]
+Backend=OpenGL
+
+[Effect-overview]
+BorderActivate=9

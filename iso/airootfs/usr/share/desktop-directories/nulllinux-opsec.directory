@@ -1,4 +1,5 @@
 [Desktop Entry]
 Type=Directory
 Name=OPSEC
-Icon=security-low
+Comment=Operational security and privacy
+Icon=preferences-system-privacy

@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Null Linux OSINT
-Comment=Show OSINT tools availability
-Exec=konsole -e /usr/local/bin/null-tools-menu osint
-Icon=system-search
-Terminal=false
-Categories=Security;X-NullLinux-OSINT;

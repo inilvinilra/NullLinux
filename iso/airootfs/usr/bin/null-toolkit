@@ -1,0 +1,347 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION="0.2.0"
+ROLES_DIR="/usr/share/nulllinux/roles"
+CONFIG_DIR="/etc/nulllinux/roles"
+DESKTOP_SRC="/usr/share/nulllinux/desktop-entries"
+DESKTOP_DST="/usr/share/applications"
+AVAILABLE_ROLES=(redteam blueteam osint opsec network forensics web wireless exploitation)
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+usage() {
+  cat <<EOF
+${BOLD}null-toolkit${NC} v${VERSION} — Null Linux Security Role Manager
+
+${BOLD}USAGE${NC}
+  null-toolkit <command> [role]
+
+${BOLD}COMMANDS${NC}
+  install <role>    Install a security role and its tools
+  remove  <role>    Remove a security role
+  list              List available roles and their status
+  info    <role>    Show packages in a role
+  update            Update all installed role packages
+
+${BOLD}AVAILABLE ROLES${NC}
+  redteam       Offensive security and penetration testing
+  blueteam      Defensive security and incident response
+  osint         Open source intelligence gathering
+  opsec         Operational security and privacy
+  network       Network analysis and traffic tools
+  forensics     Digital forensics and disk analysis
+  web           Web application security testing
+  wireless      Wireless network auditing
+  exploitation  Exploit development and reverse engineering
+
+${BOLD}EXAMPLES${NC}
+  sudo null-toolkit install redteam
+  sudo null-toolkit install osint
+  null-toolkit list
+  null-toolkit info network
+EOF
+}
+
+check_root() {
+  if [[ "${EUID}" -ne 0 ]]; then
+    echo -e "${RED}Error: This command requires root privileges.${NC}" >&2
+    echo "Run with: sudo null-toolkit $*" >&2
+    exit 1
+  fi
+}
+
+is_valid_role() {
+  local role="$1"
+  for r in "${AVAILABLE_ROLES[@]}"; do
+    [[ "$r" == "$role" ]] && return 0
+  done
+  return 1
+}
+
+is_installed() {
+  local role="$1"
+  [[ -f "$CONFIG_DIR/$role.installed" ]]
+}
+
+get_role_packages() {
+  local role="$1"
+  local yml="/etc/nulllinux/roles.d/${role}.yml"
+  if [[ -f "$yml" ]]; then
+    grep '^ *- ' "$yml" | sed 's/^ *- //' | tr -d "'"
+  else
+    local pkgbuild="/usr/share/nulllinux/pkgbuilds/nulllinux-${role}/PKGBUILD"
+    if [[ -f "$pkgbuild" ]]; then
+      grep "^  '" "$pkgbuild" | sed "s/^  '//;s/'$//"
+    else
+      echo -e "${YELLOW}Warning: No package list found for role '${role}'.${NC}" >&2
+      echo -e "Falling back to metapackage: nulllinux-${role}" >&2
+      echo "nulllinux-${role}"
+    fi
+  fi
+}
+
+link_desktop_entries() {
+  local role="$1"
+  local category
+  case "$role" in
+    redteam)      category="NullLinux-RedTeam" ;;
+    blueteam)     category="NullLinux-BlueTeam" ;;
+    osint)        category="NullLinux-OSINT" ;;
+    opsec)        category="NullLinux-OPSEC" ;;
+    network)      category="NullLinux-Network" ;;
+    forensics)    category="NullLinux-Forensics" ;;
+    web)          category="NullLinux-Web" ;;
+    wireless)     category="NullLinux-Wireless" ;;
+    exploitation) category="NullLinux-Exploitation" ;;
+  esac
+
+  if [[ -d "$DESKTOP_SRC" ]]; then
+    for f in "$DESKTOP_SRC"/*.desktop; do
+      [[ -f "$f" ]] || continue
+      if grep -q "Categories=.*${category}" "$f"; then
+        local base
+        base="$(basename "$f")"
+        cp -f "$f" "$DESKTOP_DST/nulllinux-${base}"
+      fi
+    done
+    update-desktop-database "$DESKTOP_DST" 2>/dev/null || true
+  fi
+}
+
+unlink_desktop_entries() {
+  local role="$1"
+  local category
+  case "$role" in
+    redteam)      category="NullLinux-RedTeam" ;;
+    blueteam)     category="NullLinux-BlueTeam" ;;
+    osint)        category="NullLinux-OSINT" ;;
+    opsec)        category="NullLinux-OPSEC" ;;
+    network)      category="NullLinux-Network" ;;
+    forensics)    category="NullLinux-Forensics" ;;
+    web)          category="NullLinux-Web" ;;
+    wireless)     category="NullLinux-Wireless" ;;
+    exploitation) category="NullLinux-Exploitation" ;;
+  esac
+
+  for f in "$DESKTOP_DST"/nulllinux-*.desktop; do
+    [[ -f "$f" ]] || continue
+    if grep -q "Categories=.*${category}" "$f"; then
+      local still_needed=false
+      for other_role in "${AVAILABLE_ROLES[@]}"; do
+        [[ "$other_role" == "$role" ]] && continue
+        if is_installed "$other_role"; then
+          local other_cat
+          case "$other_role" in
+            redteam)      other_cat="NullLinux-RedTeam" ;;
+            blueteam)     other_cat="NullLinux-BlueTeam" ;;
+            osint)        other_cat="NullLinux-OSINT" ;;
+            opsec)        other_cat="NullLinux-OPSEC" ;;
+            network)      other_cat="NullLinux-Network" ;;
+            forensics)    other_cat="NullLinux-Forensics" ;;
+            web)          other_cat="NullLinux-Web" ;;
+            wireless)     other_cat="NullLinux-Wireless" ;;
+            exploitation) other_cat="NullLinux-Exploitation" ;;
+          esac
+          if grep -q "Categories=.*${other_cat}" "$f"; then
+            still_needed=true
+            break
+          fi
+        fi
+      done
+      if ! $still_needed; then
+        rm -f "$f"
+      fi
+    fi
+  done
+  update-desktop-database "$DESKTOP_DST" 2>/dev/null || true
+}
+
+cmd_install() {
+  local role="$1"
+  check_root install "$role"
+
+  if ! is_valid_role "$role"; then
+    echo -e "${RED}Unknown role: ${role}${NC}" >&2
+    echo "Available roles: ${AVAILABLE_ROLES[*]}" >&2
+    exit 1
+  fi
+
+  if is_installed "$role"; then
+    echo -e "${YELLOW}Role '${role}' is already installed.${NC}"
+    echo "Use 'null-toolkit update' to refresh packages."
+    exit 0
+  fi
+
+  echo -e "${CYAN}${BOLD}Installing role: ${role}${NC}"
+  echo ""
+
+  local packages
+  packages="$(get_role_packages "$role")"
+  local pkg_array
+  mapfile -t pkg_array <<< "$packages"
+
+  echo -e "${BOLD}Packages to install (${#pkg_array[@]}):${NC}"
+  printf '  %s\n' "${pkg_array[@]}"
+  echo ""
+
+  pacman -S --needed --noconfirm "${pkg_array[@]}" || {
+    echo -e "${YELLOW}Some packages may not be available. Installing what we can...${NC}"
+    for pkg in "${pkg_array[@]}"; do
+      pacman -S --needed --noconfirm "$pkg" 2>/dev/null || \
+        echo -e "${YELLOW}  Skipped: ${pkg} (not found in repos)${NC}"
+    done
+  }
+
+  mkdir -p "$CONFIG_DIR"
+  date -Iseconds > "$CONFIG_DIR/${role}.installed"
+
+  link_desktop_entries "$role"
+
+  echo ""
+  echo -e "${GREEN}${BOLD}Role '${role}' installed successfully.${NC}"
+}
+
+cmd_remove() {
+  local role="$1"
+  check_root remove "$role"
+
+  if ! is_valid_role "$role"; then
+    echo -e "${RED}Unknown role: ${role}${NC}" >&2
+    exit 1
+  fi
+
+  if ! is_installed "$role"; then
+    echo -e "${YELLOW}Role '${role}' is not installed.${NC}"
+    exit 0
+  fi
+
+  echo -e "${CYAN}${BOLD}Removing role: ${role}${NC}"
+
+  local packages
+  packages="$(get_role_packages "$role")"
+  local pkg_array
+  mapfile -t pkg_array <<< "$packages"
+
+  pacman -Rns --noconfirm "${pkg_array[@]}" 2>/dev/null || \
+    echo -e "${YELLOW}Some packages were kept (dependencies of other roles).${NC}"
+
+  rm -f "$CONFIG_DIR/${role}.installed"
+  unlink_desktop_entries "$role"
+
+  echo -e "${GREEN}Role '${role}' removed.${NC}"
+}
+
+cmd_list() {
+  echo -e "${BOLD}Null Linux Security Roles${NC}"
+  echo ""
+  printf "  ${BOLD}%-16s %-10s %s${NC}\n" "ROLE" "STATUS" "DESCRIPTION"
+  echo "  ──────────────────────────────────────────────────────────────"
+
+  local descriptions=(
+    "Offensive security and pentesting"
+    "Defensive security and IR"
+    "Open source intelligence"
+    "Operational security and privacy"
+    "Network analysis and traffic"
+    "Digital forensics and disk analysis"
+    "Web application security"
+    "Wireless network auditing"
+    "Exploit dev and reverse engineering"
+  )
+
+  for i in "${!AVAILABLE_ROLES[@]}"; do
+    local role="${AVAILABLE_ROLES[$i]}"
+    local desc="${descriptions[$i]}"
+    local status
+    if is_installed "$role"; then
+      status="${GREEN}installed${NC}"
+    else
+      status="${YELLOW}available${NC}"
+    fi
+    printf "  %-16s ${status}   %s\n" "$role" "$desc"
+  done
+  echo ""
+}
+
+cmd_info() {
+  local role="$1"
+  if ! is_valid_role "$role"; then
+    echo -e "${RED}Unknown role: ${role}${NC}" >&2
+    exit 1
+  fi
+
+  echo -e "${BOLD}Role: ${role}${NC}"
+  if is_installed "$role"; then
+    echo -e "Status: ${GREEN}installed${NC} ($(cat "$CONFIG_DIR/${role}.installed" 2>/dev/null))"
+  else
+    echo -e "Status: ${YELLOW}available${NC}"
+  fi
+  echo ""
+  echo -e "${BOLD}Packages:${NC}"
+
+  local packages
+  packages="$(get_role_packages "$role")"
+  while IFS= read -r pkg; do
+    if pacman -Qi "$pkg" &>/dev/null; then
+      echo -e "  ${GREEN}●${NC} $pkg"
+    else
+      echo -e "  ${YELLOW}○${NC} $pkg"
+    fi
+  done <<< "$packages"
+  echo ""
+  echo -e "${GREEN}●${NC} = installed   ${YELLOW}○${NC} = not installed"
+}
+
+cmd_update() {
+  check_root update
+
+  local any_installed=false
+  for role in "${AVAILABLE_ROLES[@]}"; do
+    if is_installed "$role"; then
+      any_installed=true
+      break
+    fi
+  done
+
+  if ! $any_installed; then
+    echo -e "${YELLOW}No roles installed. Use 'null-toolkit install <role>' first.${NC}"
+    exit 0
+  fi
+
+  echo -e "${CYAN}${BOLD}Updating installed roles...${NC}"
+  pacman -Syu --noconfirm
+  echo -e "${GREEN}Update complete.${NC}"
+}
+
+case "${1:-}" in
+  install)
+    [[ -z "${2:-}" ]] && { echo "Usage: null-toolkit install <role>" >&2; exit 1; }
+    cmd_install "$2"
+    ;;
+  remove)
+    [[ -z "${2:-}" ]] && { echo "Usage: null-toolkit remove <role>" >&2; exit 1; }
+    cmd_remove "$2"
+    ;;
+  list)
+    cmd_list
+    ;;
+  info)
+    [[ -z "${2:-}" ]] && { echo "Usage: null-toolkit info <role>" >&2; exit 1; }
+    cmd_info "$2"
+    ;;
+  update)
+    cmd_update
+    ;;
+  -v|--version)
+    echo "null-toolkit v${VERSION}"
+    ;;
+  *)
+    usage
+    ;;
+esac

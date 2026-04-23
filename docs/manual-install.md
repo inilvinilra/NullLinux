@@ -1,14 +1,25 @@
 # Manual Install
 
-This is the current install path for Null Linux.
+## Recommended: TUI Installer
 
-## Assumptions
+```bash
+sudo null-install
+```
+
+The installer provides a dialog interface for disk selection, partitioning,
+user creation, timezone, and security role selection.
+
+## Manual Bootstrap (Advanced)
+
+If you prefer full manual control:
+
+### Assumptions
 
 - UEFI system
 - EFI partition mounted at `/mnt/boot`
-- root filesystem mounted at `/mnt`
+- Root filesystem mounted at `/mnt`
 
-## Partitioning Example
+### Partitioning Example
 
 ```bash
 parted /dev/nvme0n1 --script mklabel gpt
@@ -22,22 +33,23 @@ mkdir -p /mnt/boot
 mount /dev/nvme0n1p1 /mnt/boot
 ```
 
-## Bootstrap
+### Bootstrap
 
 ```bash
 null-bootstrap
 ```
 
 The script will:
-- install the base system
-- generate `fstab`
-- create a user
-- enable `NetworkManager` and `sddm`
-- install `systemd-boot`
-- ask for root and user passwords
+- Install the base system with KDE Plasma
+- Configure BlackArch and Chaotic-AUR repos
+- Generate fstab
+- Create a user and set passwords
+- Enable NetworkManager, SDDM, and ufw
+- Install systemd-boot
 
-## After Reboot
+### After Reboot
 
-- log in with the created user
-- verify networking
-- update the system with `sudo pacman -Syu`
+- Log in with the created user
+- Run `null-welcome` for setup guidance
+- Install security roles: `sudo null-toolkit install redteam`
+- Update the system: `sudo pacman -Syu`

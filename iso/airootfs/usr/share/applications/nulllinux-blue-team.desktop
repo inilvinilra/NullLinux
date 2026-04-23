@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Null Linux Blue Team
-Comment=Show Blue Team tools availability
-Exec=konsole -e /usr/local/bin/null-tools-menu blue-team
-Icon=security-medium
-Terminal=false
-Categories=Security;X-NullLinux-BlueTeam;

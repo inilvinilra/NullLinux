@@ -1,0 +1,21 @@
+name: Blue Team
+description: Defensive security, monitoring, and incident response tools
+packages:
+  - wireshark-qt
+  - suricata
+  - zeek
+  - yara
+  - volatility3
+  - clamav
+  - lynis
+  - rkhunter
+  - aide
+  - ossec-hids
+  - velociraptor
+  - arkime
+  - wazuh-agent
+  - fail2ban
+  - snort
+  - syslog-ng
+  - logwatch
+  - tripwire

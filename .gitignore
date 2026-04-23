@@ -1,5 +1,7 @@
 out/
 work/
 *.iso
+*.iso.sha256
 *.log
 .Null
+.nvchecker/newver.json

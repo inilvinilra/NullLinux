@@ -1,0 +1,20 @@
+name: Forensics
+description: Digital forensics, disk analysis, and memory examination
+packages:
+  - autopsy
+  - sleuthkit
+  - volatility3
+  - binwalk
+  - foremost
+  - scalpel
+  - bulk-extractor
+  - dc3dd
+  - guymager
+  - plaso
+  - yara
+  - exiftool
+  - hashdeep
+  - testdisk
+  - photorec
+  - chkrootkit
+  - unhide

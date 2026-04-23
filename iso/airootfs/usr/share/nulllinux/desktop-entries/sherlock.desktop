@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Sherlock
+Comment=Find usernames across social networks
+Exec=konsole -e sherlock --help
+Icon=preferences-system-search
+Terminal=false
+Categories=NullLinux-OSINT;

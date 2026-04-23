@@ -1,0 +1,319 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION="0.2.0"
+TARGET="/mnt"
+BACKTITLE="Null Linux Installer v${VERSION}"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'
+
+die() { echo -e "${RED}Error: $*${NC}" >&2; exit 1; }
+
+check_deps() {
+  for cmd in dialog parted mkfs.fat mkfs.ext4 pacstrap genfstab arch-chroot bootctl; do
+    command -v "$cmd" >/dev/null 2>&1 || die "Missing dependency: $cmd"
+  done
+}
+
+check_root() {
+  [[ "${EUID}" -eq 0 ]] || die "This installer must be run as root.\nUsage: sudo null-install"
+}
+
+check_uefi() {
+  [[ -d /sys/firmware/efi/efivars ]]
+}
+
+select_disk() {
+  local disks=()
+  while IFS= read -r line; do
+    local name size
+    name="$(echo "$line" | awk '{print $1}')"
+    size="$(echo "$line" | awk '{print $4}')"
+    disks+=("$name" "$size")
+  done < <(lsblk -dpno NAME,TYPE,TRAN,SIZE | grep 'disk' | grep -v 'loop\|sr\|rom')
+
+  if [[ ${#disks[@]} -eq 0 ]]; then
+    dialog --backtitle "$BACKTITLE" --msgbox "No suitable disks found." 6 40
+    exit 1
+  fi
+
+  DISK="$(dialog --backtitle "$BACKTITLE" --title "Select Disk" \
+    --menu "Choose the target disk for installation.\nWARNING: All data will be erased!" 15 60 6 \
+    "${disks[@]}" 3>&1 1>&2 2>&3)" || exit 1
+}
+
+confirm_wipe() {
+  dialog --backtitle "$BACKTITLE" --title "Confirm" \
+    --yesno "All data on ${DISK} will be PERMANENTLY DESTROYED.\n\nContinue?" 8 50 || exit 1
+}
+
+partition_disk() {
+  dialog --backtitle "$BACKTITLE" --infobox "Partitioning ${DISK}..." 3 40
+
+  parted -s "$DISK" mklabel gpt
+  parted -s "$DISK" mkpart ESP fat32 1MiB 1025MiB
+  parted -s "$DISK" set 1 esp on
+  parted -s "$DISK" mkpart ROOT ext4 1025MiB 100%
+
+  local p=""
+  [[ "$DISK" =~ [0-9]$ ]] && p="p"
+  EFI_PART="${DISK}${p}1"
+  ROOT_PART="${DISK}${p}2"
+
+  mkfs.fat -F32 "$EFI_PART"
+  mkfs.ext4 -F "$ROOT_PART"
+
+  mount "$ROOT_PART" "$TARGET"
+  mkdir -p "$TARGET/boot"
+  mount "$EFI_PART" "$TARGET/boot"
+}
+
+get_user_config() {
+  HOSTNAME_VALUE="$(dialog --backtitle "$BACKTITLE" --title "Hostname" \
+    --inputbox "Enter hostname:" 8 50 "null" 3>&1 1>&2 2>&3)" || HOSTNAME_VALUE="null"
+
+  USERNAME_VALUE="$(dialog --backtitle "$BACKTITLE" --title "Username" \
+    --inputbox "Enter username:" 8 50 "null" 3>&1 1>&2 2>&3)" || USERNAME_VALUE="null"
+
+  USER_PASSWORD="$(dialog --backtitle "$BACKTITLE" --title "User Password" \
+    --insecure --passwordbox "Enter password for ${USERNAME_VALUE}:" 8 50 3>&1 1>&2 2>&3)" || USER_PASSWORD=""
+
+  ROOT_PASSWORD="$(dialog --backtitle "$BACKTITLE" --title "Root Password" \
+    --insecure --passwordbox "Enter root password:" 8 50 3>&1 1>&2 2>&3)" || ROOT_PASSWORD=""
+
+  TIMEZONE_VALUE="$(dialog --backtitle "$BACKTITLE" --title "Timezone" \
+    --inputbox "Enter timezone (e.g. Europe/Istanbul, UTC):" 8 60 "UTC" 3>&1 1>&2 2>&3)" || TIMEZONE_VALUE="UTC"
+
+  if [[ ! -e "/usr/share/zoneinfo/$TIMEZONE_VALUE" ]]; then
+    dialog --backtitle "$BACKTITLE" --msgbox "Invalid timezone: $TIMEZONE_VALUE\nFalling back to UTC." 7 50
+    TIMEZONE_VALUE="UTC"
+  fi
+}
+
+select_roles() {
+  SELECTED_ROLES="$(dialog --backtitle "$BACKTITLE" --title "Security Roles" \
+    --checklist "Select roles to install (optional):" 20 60 9 \
+    "redteam"       "Offensive security and pentesting"    off \
+    "blueteam"      "Defensive security and IR"            off \
+    "osint"         "Open source intelligence"             off \
+    "opsec"         "Operational security and privacy"     off \
+    "network"       "Network analysis and traffic"         off \
+    "forensics"     "Digital forensics"                    off \
+    "web"           "Web application security"             off \
+    "wireless"      "Wireless network auditing"            off \
+    "exploitation"  "Exploit dev and RE"                   off \
+    3>&1 1>&2 2>&3)" || SELECTED_ROLES=""
+}
+
+install_base() {
+  dialog --backtitle "$BACKTITLE" --title "Installing" \
+    --infobox "Installing base system...\nThis may take several minutes." 5 50
+
+  pacstrap -K "$TARGET" \
+    base linux linux-firmware mkinitcpio systemd systemd-sysvcompat \
+    amd-ucode intel-ucode sudo nano vim less which man-db man-pages bash-completion \
+    zsh networkmanager iwd openssh iptables-nft nftables ufw \
+    btrfs-progs dosfstools e2fsprogs efibootmgr exfatprogs f2fs-tools parted \
+    xorg-server dolphin konsole kate plasma-desktop plasma-nm plasma-pa \
+    plasma-workspace plasma-systemmonitor polkit-kde-agent qt6-wayland sddm \
+    xdg-desktop-portal-kde xdg-user-dirs xdg-utils breeze breeze-gtk \
+    kde-gtk-config kwallet-pam kscreen powerdevil plymouth \
+    mesa vulkan-icd-loader ttf-dejavu ttf-liberation noto-fonts \
+    adwaita-icon-theme papirus-icon-theme archlinux-keyring \
+    blackarch-keyring blackarch-mirrorlist chaotic-keyring chaotic-mirrorlist
+
+  genfstab -U "$TARGET" > "$TARGET/etc/fstab"
+}
+
+configure_system() {
+  local ROOT_UUID
+  ROOT_UUID="$(blkid -s UUID -o value "$ROOT_PART")"
+
+  printf '%s' "$USER_PASSWORD" > "$TARGET/root/.user_pw"
+  printf '%s' "$ROOT_PASSWORD" > "$TARGET/root/.root_pw"
+  chmod 600 "$TARGET/root/.user_pw" "$TARGET/root/.root_pw"
+
+  cat > "$TARGET/root/null-postinstall.sh" <<POSTEOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+ln -sf /usr/share/zoneinfo/${TIMEZONE_VALUE} /etc/localtime
+hwclock --systohc || true
+sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+locale-gen
+printf 'LANG=en_US.UTF-8\n' > /etc/locale.conf
+printf 'KEYMAP=us\n' > /etc/vconsole.conf
+printf '%s\n' "${HOSTNAME_VALUE}" > /etc/hostname
+
+cat > /etc/hosts <<HOSTS
+127.0.0.1 localhost
+::1 localhost
+127.0.1.1 ${HOSTNAME_VALUE}.localdomain ${HOSTNAME_VALUE}
+HOSTS
+
+useradd -m -G wheel,audio,video,storage,optical -s /bin/zsh "${USERNAME_VALUE}"
+printf '%s:%s\n' "${USERNAME_VALUE}" "\$(cat /root/.user_pw)" | chpasswd
+printf '%s:%s\n' "root" "\$(cat /root/.root_pw)" | chpasswd
+rm -f /root/.user_pw /root/.root_pw
+
+install -d -m 0755 /etc/sudoers.d
+printf '%%wheel ALL=(ALL:ALL) ALL\n' > /etc/sudoers.d/01-wheel
+chmod 0440 /etc/sudoers.d/01-wheel
+
+systemctl enable NetworkManager.service
+systemctl enable sddm.service
+systemctl enable ufw.service
+
+cat >> /etc/pacman.conf <<'REPOS'
+
+[blackarch]
+Include = /etc/pacman.d/blackarch-mirrorlist
+
+[chaotic-aur]
+Include = /etc/pacman.d/chaotic-mirrorlist
+REPOS
+
+bootctl --path=/boot install
+mkdir -p /boot/loader/entries
+
+cat > /boot/loader/loader.conf <<LOADER
+default null-linux
+timeout 3
+editor no
+LOADER
+
+cat > /boot/loader/entries/null-linux.conf <<ENTRY
+title Null Linux
+linux /vmlinuz-linux
+initrd /amd-ucode.img
+initrd /intel-ucode.img
+initrd /initramfs-linux.img
+options root=UUID=${ROOT_UUID} rw quiet splash plymouth.enable=1
+ENTRY
+
+xdg-user-dirs-update
+POSTEOF
+
+  chmod +x "$TARGET/root/null-postinstall.sh"
+  arch-chroot "$TARGET" /root/null-postinstall.sh
+  rm -f "$TARGET/root/null-postinstall.sh"
+
+  dialog --backtitle "$BACKTITLE" --infobox "Copying Null Linux tools..." 3 45
+
+  for tool in null-toolkit null-welcome null-install; do
+    if [[ -f "/usr/bin/$tool" ]]; then
+      install -Dm755 "/usr/bin/$tool" "$TARGET/usr/bin/$tool"
+    fi
+  done
+
+  if [[ -d /etc/nulllinux/roles.d ]]; then
+    install -dm755 "$TARGET/etc/nulllinux/roles.d"
+    cp -a /etc/nulllinux/roles.d/*.yml "$TARGET/etc/nulllinux/roles.d/" 2>/dev/null || true
+  fi
+
+  if [[ -d /usr/share/nulllinux ]]; then
+    cp -a /usr/share/nulllinux "$TARGET/usr/share/" 2>/dev/null || true
+  fi
+
+  if [[ -d /usr/share/desktop-directories ]]; then
+    for f in /usr/share/desktop-directories/nulllinux-*.directory; do
+      [[ -f "$f" ]] && cp -f "$f" "$TARGET/usr/share/desktop-directories/"
+    done
+  fi
+
+  if [[ -f /etc/xdg/menus/applications-merged/nulllinux-security.menu ]]; then
+    install -Dm644 /etc/xdg/menus/applications-merged/nulllinux-security.menu \
+      "$TARGET/etc/xdg/menus/applications-merged/nulllinux-security.menu"
+  fi
+
+  if [[ -f /usr/share/libalpm/hooks/nulllinux-desktop-entries.hook ]]; then
+    install -Dm644 /usr/share/libalpm/hooks/nulllinux-desktop-entries.hook \
+      "$TARGET/usr/share/libalpm/hooks/nulllinux-desktop-entries.hook"
+  fi
+
+  if [[ -d /usr/share/wallpapers/NullLinux ]]; then
+    cp -a /usr/share/wallpapers/NullLinux "$TARGET/usr/share/wallpapers/" 2>/dev/null || true
+  fi
+
+  if [[ -d /usr/share/plymouth/themes/nulllinux ]]; then
+    cp -a /usr/share/plymouth/themes/nulllinux "$TARGET/usr/share/plymouth/themes/" 2>/dev/null || true
+  fi
+
+  if [[ -f /usr/lib/firefox/distribution/policies.json ]]; then
+    install -Dm644 /usr/lib/firefox/distribution/policies.json \
+      "$TARGET/usr/lib/firefox/distribution/policies.json"
+  fi
+}
+
+install_roles() {
+  if [[ -n "$SELECTED_ROLES" ]]; then
+    for role in $SELECTED_ROLES; do
+      role="${role//\"/}"
+      dialog --backtitle "$BACKTITLE" --infobox "Installing role: ${role}..." 3 40
+      arch-chroot "$TARGET" bash -c "
+        if command -v null-toolkit >/dev/null 2>&1; then
+          null-toolkit install ${role}
+        else
+          echo 'null-toolkit not available, skipping role ${role}'
+        fi
+      " || true
+    done
+  fi
+}
+
+show_complete() {
+  dialog --backtitle "$BACKTITLE" --title "Installation Complete" \
+    --msgbox "Null Linux has been installed successfully!\n\n\
+Hostname: ${HOSTNAME_VALUE}\n\
+User: ${USERNAME_VALUE}\n\
+Desktop: KDE Plasma (Breeze Dark)\n\
+Boot: systemd-boot\n\
+Firewall: ufw (enabled)\n\
+Repos: Arch + BlackArch + Chaotic-AUR\n\n\
+Remove the installation media and reboot:\n\n\
+  umount -R /mnt\n\
+  reboot" 18 55
+}
+
+main() {
+  check_root
+  check_deps
+
+  if ! check_uefi; then
+    dialog --backtitle "$BACKTITLE" --msgbox \
+      "WARNING: UEFI not detected.\nThis installer requires UEFI mode.\nPlease boot in UEFI mode and try again." 8 50
+    exit 1
+  fi
+
+  dialog --backtitle "$BACKTITLE" --title "Null Linux Installer" \
+    --yesno "Welcome to the Null Linux installer.\n\nThis will install Null Linux on your system.\nContinue?" 10 50 || exit 0
+
+  select_disk
+  confirm_wipe
+  get_user_config
+  select_roles
+
+  dialog --backtitle "$BACKTITLE" --title "Review" \
+    --yesno "Installation summary:\n\n\
+Disk: ${DISK}\n\
+Hostname: ${HOSTNAME_VALUE}\n\
+User: ${USERNAME_VALUE}\n\
+Timezone: ${TIMEZONE_VALUE}\n\
+Roles: ${SELECTED_ROLES:-none}\n\n\
+Begin installation?" 16 50 || exit 0
+
+  partition_disk
+  install_base
+  configure_system
+  install_roles
+  show_complete
+
+  umount -R "$TARGET" 2>/dev/null || true
+}
+
+main "$@"

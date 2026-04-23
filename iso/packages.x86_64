@@ -1,3 +1,4 @@
+# ── Core system ──────────────────────────────────────────────
 base
 linux
 linux-firmware
@@ -8,6 +9,8 @@ systemd
 systemd-sysvcompat
 amd-ucode
 intel-ucode
+
+# ── Filesystems & partitioning ──────────────────────────────
 arch-install-scripts
 btrfs-progs
 dosfstools
@@ -15,10 +18,21 @@ e2fsprogs
 efibootmgr
 exfatprogs
 f2fs-tools
-grub
 parted
+
+# ── Boot ────────────────────────────────────────────────────
+syslinux
+plymouth
+
+# ── Networking ──────────────────────────────────────────────
 networkmanager
-iptables
+iwd
+openssh
+iptables-nft
+nftables
+ufw
+
+# ── Base utilities ──────────────────────────────────────────
 sudo
 nano
 vim
@@ -27,6 +41,10 @@ which
 man-db
 man-pages
 bash-completion
+zsh
+zsh-completions
+zsh-syntax-highlighting
+zsh-autosuggestions
 pv
 rsync
 curl
@@ -34,38 +52,64 @@ wget
 git
 htop
 nbd
-syslinux
+unzip
+p7zip
+tree
+tmux
+fastfetch
+dialog
+bc
+jq
+ripgrep
+fd
+bat
+xclip
+python
+python-pip
+openssl
+
+# ── KDE Plasma desktop ─────────────────────────────────────
 xorg-server
-dolphin
-konsole
 plasma-desktop
+plasma-workspace
 plasma-nm
 plasma-pa
-plasma-workspace
+plasma-systemmonitor
+dolphin
+konsole
+kate
+spectacle
+ark
 polkit-kde-agent
 qt6-wayland
 sddm
 xdg-desktop-portal-kde
 xdg-user-dirs
 xdg-utils
+breeze
+breeze-gtk
+kde-gtk-config
+kwallet-pam
+kscreen
+powerdevil
+
+# ── Browser ─────────────────────────────────────────────────
+firefox
+
+# ── Graphics ────────────────────────────────────────────────
 mesa
+vulkan-icd-loader
+
+# ── Fonts & themes ──────────────────────────────────────────
 ttf-dejavu
+ttf-liberation
+noto-fonts
 adwaita-icon-theme
 papirus-icon-theme
+
+# ── Keyrings & mirrors ─────────────────────────────────────
 archlinux-keyring
 blackarch-keyring
 blackarch-mirrorlist
-nmap
-sqlmap
-hydra
-nikto
-suricata
-wireshark-qt
-tcpdump
-traceroute
-whois
-tor
-torsocks
-proxychains-ng
-keepassxc
-ufw
+chaotic-keyring
+chaotic-mirrorlist

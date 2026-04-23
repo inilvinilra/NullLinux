@@ -1,0 +1,26 @@
+pkgname=nulllinux-blueteam
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux Blue Team — defensive security, monitoring, and incident response"
+arch=('any')
+url="https://github.com/xredjhon/NullLinux"
+license=('MIT')
+depends=(
+  'wireshark-qt'
+  'suricata'
+  'zeek'
+  'yara'
+  'volatility3'
+  'clamav'
+  'lynis'
+  'rkhunter'
+  'aide'
+  'fail2ban'
+  'snort'
+  'syslog-ng'
+  'logwatch'
+)
+
+package() {
+  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/blueteam"
+}

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Aircrack-ng
+Comment=Wireless network security toolset
+Exec=konsole -e aircrack-ng --help
+Icon=network-wireless
+Terminal=false
+Categories=NullLinux-Wireless;NullLinux-Network;

@@ -1,0 +1,134 @@
+{
+  "policies": {
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "DisablePocket": true,
+    "DisableFirefoxAccounts": false,
+    "DisableFormHistory": true,
+    "DontCheckDefaultBrowser": true,
+    "OfferToSaveLogins": false,
+    "PasswordManagerEnabled": false,
+    "NoDefaultBookmarks": true,
+    "OverrideFirstRunPage": "",
+    "OverridePostUpdatePage": "",
+    "Homepage": {
+      "URL": "https://github.com/xredjhon/NullLinux",
+      "Locked": false,
+      "StartPage": "homepage"
+    },
+    "SearchBar": "unified",
+    "DNSOverHTTPS": {
+      "Enabled": true,
+      "ProviderURL": "https://mozilla.cloudflare-dns.com/dns-query",
+      "Locked": false
+    },
+    "EnableTrackingProtection": {
+      "Value": true,
+      "Locked": false,
+      "Cryptomining": true,
+      "Fingerprinting": true
+    },
+    "Cookies": {
+      "Behavior": "reject-tracker-and-partition-foreign",
+      "BehaviorPrivateBrowsing": "reject-tracker-and-partition-foreign"
+    },
+    "HttpsOnlyMode": "enabled",
+    "SanitizeOnShutdown": {
+      "Cache": true,
+      "Cookies": false,
+      "Downloads": false,
+      "FormData": true,
+      "History": false,
+      "Sessions": false,
+      "SiteSettings": false,
+      "OfflineApps": true,
+      "Locked": false
+    },
+    "ExtensionSettings": {
+      "uBlock0@raymondhill.net": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi"
+      }
+    },
+    "Preferences": {
+      "privacy.donottrackheader.enabled": {
+        "Value": true,
+        "Status": "default"
+      },
+      "privacy.globalprivacycontrol.enabled": {
+        "Value": true,
+        "Status": "default"
+      },
+      "dom.security.https_only_mode": {
+        "Value": true,
+        "Status": "default"
+      },
+      "browser.contentblocking.category": {
+        "Value": "strict",
+        "Status": "default"
+      },
+      "network.cookie.cookieBehavior": {
+        "Value": 5,
+        "Status": "default"
+      },
+      "browser.urlbar.suggest.quicksuggest.sponsored": {
+        "Value": false,
+        "Status": "default"
+      },
+      "browser.newtabpage.activity-stream.showSponsored": {
+        "Value": false,
+        "Status": "default"
+      },
+      "browser.newtabpage.activity-stream.showSponsoredTopSites": {
+        "Value": false,
+        "Status": "default"
+      },
+      "toolkit.legacyUserProfileCustomizations.stylesheets": {
+        "Value": true,
+        "Status": "default"
+      }
+    },
+    "Bookmarks": [
+      {
+        "Title": "Null Linux",
+        "URL": "https://github.com/xredjhon/NullLinux",
+        "Placement": "toolbar"
+      },
+      {
+        "Title": "BlackArch Tools",
+        "URL": "https://blackarch.org/tools.html",
+        "Placement": "toolbar"
+      },
+      {
+        "Title": "Exploit-DB",
+        "URL": "https://www.exploit-db.com",
+        "Placement": "toolbar"
+      },
+      {
+        "Title": "HackTricks",
+        "URL": "https://book.hacktricks.wiki",
+        "Placement": "toolbar"
+      },
+      {
+        "Title": "GTFOBins",
+        "URL": "https://gtfobins.github.io",
+        "Placement": "toolbar"
+      },
+      {
+        "Title": "CyberChef",
+        "URL": "https://gchq.github.io/CyberChef",
+        "Placement": "toolbar"
+      },
+      {
+        "Title": "MITRE ATT&CK",
+        "URL": "https://attack.mitre.org",
+        "Placement": "toolbar"
+      },
+      {
+        "Title": "CVE Details",
+        "URL": "https://www.cvedetails.com",
+        "Placement": "toolbar"
+      }
+    ]
+  }
+}

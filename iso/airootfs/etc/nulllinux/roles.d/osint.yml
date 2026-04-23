@@ -1,0 +1,20 @@
+name: OSINT
+description: Open source intelligence gathering and reconnaissance
+packages:
+  - maltego
+  - spiderfoot
+  - recon-ng
+  - theharvester
+  - sherlock
+  - amass
+  - subfinder
+  - photon
+  - metagoofil
+  - holehe
+  - ghunt
+  - phoneinfoga
+  - socialscan
+  - twint
+  - exiftool
+  - dmitry
+  - fierce

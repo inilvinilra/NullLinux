@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Proxychains
+Comment=Force TCP connections through proxy
+Exec=konsole -e proxychains4 --help
+Icon=preferences-system-privacy
+Terminal=false
+Categories=NullLinux-OPSEC;

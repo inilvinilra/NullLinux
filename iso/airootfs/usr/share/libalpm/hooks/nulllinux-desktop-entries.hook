@@ -1,0 +1,11 @@
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Target = *
+
+[Action]
+Description = Updating Null Linux desktop entries...
+When = PostTransaction
+Exec = /usr/share/nulllinux/hooks/update-desktop-entries.sh
+NeedsTargets

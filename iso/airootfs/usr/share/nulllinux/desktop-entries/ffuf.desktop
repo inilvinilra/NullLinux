@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ffuf
+Comment=Fast web fuzzer
+Exec=konsole -e ffuf --help
+Icon=text-html
+Terminal=false
+Categories=NullLinux-Web;

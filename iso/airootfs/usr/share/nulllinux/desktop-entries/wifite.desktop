@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Wifite
+Comment=Automated wireless attack tool
+Exec=konsole -e sudo wifite --help
+Icon=network-wireless
+Terminal=false
+Categories=NullLinux-Wireless;

@@ -1,4 +1,5 @@
 [Desktop Entry]
 Type=Directory
 Name=Network
+Comment=Network analysis and traffic tools
 Icon=network-workgroup

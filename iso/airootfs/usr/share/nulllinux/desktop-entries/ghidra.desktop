@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Ghidra
+Comment=Software reverse engineering framework
+Exec=ghidra
+Icon=applications-development
+Terminal=false
+Categories=NullLinux-Exploitation;

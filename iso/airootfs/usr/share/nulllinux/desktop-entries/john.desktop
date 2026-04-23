@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=John the Ripper
+Comment=Password cracker
+Exec=konsole -e john --help
+Icon=utilities-terminal
+Terminal=false
+Categories=NullLinux-RedTeam;

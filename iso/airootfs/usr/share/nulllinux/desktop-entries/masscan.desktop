@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Masscan
+Comment=Internet-scale port scanner
+Exec=konsole -e masscan --help
+Icon=network-workgroup
+Terminal=false
+Categories=NullLinux-Network;NullLinux-RedTeam;

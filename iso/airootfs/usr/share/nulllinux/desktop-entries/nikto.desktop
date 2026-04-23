@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Nikto
+Comment=Web server scanner
+Exec=konsole -e nikto -Help
+Icon=text-html
+Terminal=false
+Categories=NullLinux-Web;

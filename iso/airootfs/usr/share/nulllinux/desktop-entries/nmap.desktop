@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Nmap
+Comment=Network exploration and security auditing
+Exec=konsole -e nmap --help
+Icon=utilities-terminal
+Terminal=false
+Categories=NullLinux-RedTeam;NullLinux-Network;

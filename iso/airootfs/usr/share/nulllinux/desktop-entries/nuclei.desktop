@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Nuclei
+Comment=Vulnerability scanner with templates
+Exec=konsole -e nuclei --help
+Icon=text-html
+Terminal=false
+Categories=NullLinux-Web;NullLinux-RedTeam;

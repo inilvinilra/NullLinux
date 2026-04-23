@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=sqlmap
+Comment=Automatic SQL injection tool
+Exec=konsole -e sqlmap --wizard
+Icon=utilities-terminal
+Terminal=false
+Categories=NullLinux-RedTeam;NullLinux-Web;

@@ -1,0 +1,26 @@
+Window.SetBackgroundTopColor(0.05, 0.05, 0.08);
+Window.SetBackgroundBottomColor(0.02, 0.02, 0.04);
+
+logo.image = Image("logo.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(Window.GetWidth() / 2 - logo.image.GetWidth() / 2);
+logo.sprite.SetY(Window.GetHeight() / 2 - logo.image.GetHeight() / 2 - 40);
+logo.sprite.SetOpacity(1);
+
+progress = 0;
+fun refresh_callback() {
+  progress++;
+  if (progress > 100) progress = 0;
+}
+
+Plymouth.SetRefreshFunction(refresh_callback);
+
+fun message_callback(text) {
+  msg.sprite = Sprite();
+  msg.image = Image.Text(text, 0.6, 0.6, 0.7);
+  msg.sprite.SetImage(msg.image);
+  msg.sprite.SetX(Window.GetWidth() / 2 - msg.image.GetWidth() / 2);
+  msg.sprite.SetY(Window.GetHeight() / 2 + 60);
+}
+
+Plymouth.SetMessageFunction(message_callback);

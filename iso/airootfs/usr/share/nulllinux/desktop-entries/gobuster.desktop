@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Gobuster
+Comment=Directory and DNS brute-forcer
+Exec=konsole -e gobuster --help
+Icon=utilities-terminal
+Terminal=false
+Categories=NullLinux-RedTeam;NullLinux-Web;

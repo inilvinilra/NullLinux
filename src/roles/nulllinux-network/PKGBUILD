@@ -1,0 +1,33 @@
+pkgname=nulllinux-network
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux Network — network analysis, sniffing, and traffic tools"
+arch=('any')
+url="https://github.com/xredjhon/NullLinux"
+license=('MIT')
+depends=(
+  'wireshark-qt'
+  'tcpdump'
+  'nmap'
+  'masscan'
+  'openbsd-netcat'
+  'bettercap'
+  'ettercap'
+  'arpwatch'
+  'traceroute'
+  'mtr'
+  'hping'
+  'netdiscover'
+  'iperf3'
+  'dnsutils'
+  'whois'
+  'ngrep'
+  'tshark'
+  'zeek'
+  'p0f'
+  'dnsenum'
+)
+
+package() {
+  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/network"
+}

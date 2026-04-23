@@ -1,0 +1,22 @@
+pkgname=null-toolkit
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux Security Role Manager — install and manage cybersecurity tool categories"
+arch=('any')
+url="https://github.com/xredjhon/NullLinux"
+license=('MIT')
+depends=('bash' 'pacman')
+backup=()
+
+package() {
+  install -Dm755 "$srcdir/../null-toolkit" "$pkgdir/usr/bin/null-toolkit"
+
+  install -dm755 "$pkgdir/usr/share/nulllinux/desktop-entries"
+  install -dm755 "$pkgdir/etc/nulllinux"
+
+  local roles_src="$srcdir/../../../../config/roles"
+  if [[ -d "$roles_src" ]]; then
+    install -dm755 "$pkgdir/etc/nulllinux/roles.d"
+    install -m644 "$roles_src"/*.yml "$pkgdir/etc/nulllinux/roles.d/"
+  fi
+}

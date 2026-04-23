@@ -1,0 +1,28 @@
+pkgname=nulllinux-opsec
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux OPSEC — operational security, privacy, and anonymity"
+arch=('any')
+url="https://github.com/xredjhon/NullLinux"
+license=('MIT')
+depends=(
+  'tor'
+  'torsocks'
+  'proxychains-ng'
+  'macchanger'
+  'bleachbit'
+  'firejail'
+  'apparmor'
+  'mat2'
+  'onionshare'
+  'i2pd'
+  'secure-delete'
+  'veracrypt'
+  'keepassxc'
+  'age'
+  'gnupg'
+)
+
+package() {
+  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/opsec"
+}

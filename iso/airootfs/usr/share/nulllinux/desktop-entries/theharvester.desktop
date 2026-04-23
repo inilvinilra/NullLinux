@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=theHarvester
+Comment=Email and subdomain harvester
+Exec=konsole -e theHarvester --help
+Icon=preferences-system-search
+Terminal=false
+Categories=NullLinux-OSINT;

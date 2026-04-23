@@ -1,0 +1,32 @@
+pkgname=nulllinux-redteam
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux Red Team — offensive security and penetration testing tools"
+arch=('any')
+url="https://github.com/xredjhon/NullLinux"
+license=('MIT')
+depends=(
+  'nmap'
+  'metasploit'
+  'sqlmap'
+  'john'
+  'hashcat'
+  'hydra'
+  'gobuster'
+  'responder'
+  'impacket'
+  'crackmapexec'
+  'bloodhound'
+  'enum4linux'
+  'evil-winrm'
+  'chisel'
+  'kerbrute'
+  'seclists'
+  'wordlists'
+  'powershell-empire'
+  'sliver'
+)
+
+package() {
+  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/redteam"
+}

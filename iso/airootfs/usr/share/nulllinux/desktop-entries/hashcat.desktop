@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Hashcat
+Comment=Advanced password recovery
+Exec=konsole -e hashcat --help
+Icon=utilities-terminal
+Terminal=false
+Categories=NullLinux-RedTeam;

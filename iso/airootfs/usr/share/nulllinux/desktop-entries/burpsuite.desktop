@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Burp Suite
+Comment=Web vulnerability scanner
+Exec=burpsuite
+Icon=utilities-terminal
+Terminal=false
+Categories=NullLinux-Web;

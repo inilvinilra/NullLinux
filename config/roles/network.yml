@@ -1,0 +1,23 @@
+name: Network
+description: Network analysis, sniffing, and traffic manipulation
+packages:
+  - wireshark-qt
+  - tcpdump
+  - nmap
+  - masscan
+  - openbsd-netcat
+  - bettercap
+  - ettercap
+  - arpwatch
+  - traceroute
+  - mtr
+  - hping
+  - netdiscover
+  - iperf3
+  - dnsutils
+  - whois
+  - ngrep
+  - tshark
+  - zeek
+  - p0f
+  - dnsenum

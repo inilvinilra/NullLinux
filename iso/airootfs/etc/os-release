@@ -1,10 +1,11 @@
 NAME="Null Linux"
 PRETTY_NAME="Null Linux"
 ID=nulllinux
-BUILD_ID=0.1.0-alpha
+ID_LIKE=arch
+BUILD_ID=0.2.0-alpha
 ANSI_COLOR="0;37"
-HOME_URL="https://example.invalid/null-linux"
-DOCUMENTATION_URL="https://example.invalid/null-linux/docs"
-SUPPORT_URL="https://example.invalid/null-linux/support"
-BUG_REPORT_URL="https://example.invalid/null-linux/issues"
-LOGO=archlinux-logo
+HOME_URL="https://github.com/xredjhon/NullLinux"
+DOCUMENTATION_URL="https://github.com/xredjhon/NullLinux/tree/main/docs"
+SUPPORT_URL="https://github.com/xredjhon/NullLinux/issues"
+BUG_REPORT_URL="https://github.com/xredjhon/NullLinux/issues"
+LOGO=nulllinux

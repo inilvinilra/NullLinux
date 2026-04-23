@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Wireshark
+Comment=Network protocol analyzer
+Exec=wireshark
+Icon=wireshark
+Terminal=false
+Categories=NullLinux-BlueTeam;NullLinux-Network;

@@ -1,0 +1,27 @@
+pkgname=nulllinux-osint
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux OSINT — open source intelligence gathering and reconnaissance"
+arch=('any')
+url="https://github.com/xredjhon/NullLinux"
+license=('MIT')
+depends=(
+  'maltego'
+  'spiderfoot'
+  'recon-ng'
+  'theharvester'
+  'sherlock'
+  'amass'
+  'subfinder'
+  'photon'
+  'metagoofil'
+  'holehe'
+  'phoneinfoga'
+  'exiftool'
+  'dmitry'
+  'fierce'
+)
+
+package() {
+  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/osint"
+}

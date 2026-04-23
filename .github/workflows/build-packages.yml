@@ -1,0 +1,66 @@
+name: Build Packages
+
+on:
+  push:
+    paths:
+      - "src/**/PKGBUILD"
+  pull_request:
+    paths:
+      - "src/**/PKGBUILD"
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.detect.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed PKGBUILDs
+        id: detect
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'src/**/PKGBUILD' | \
+            xargs -I{} dirname {} | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "packages=${CHANGED}" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --privileged
+
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.detect-changes.outputs.packages) }}
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm base-devel
+
+      - name: Setup build user
+        run: |
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          chown -R builder:builder .
+
+      - name: Build package
+        run: |
+          cd "${{ matrix.package }}"
+          su builder -c 'makepkg -sf --noconfirm'
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg-${{ hashFiles(format('{0}/PKGBUILD', matrix.package)) }}
+          path: ${{ matrix.package }}/*.pkg.tar.zst
+          retention-days: 30

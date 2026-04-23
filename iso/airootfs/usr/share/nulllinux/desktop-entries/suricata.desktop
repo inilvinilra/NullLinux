@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Suricata
+Comment=Network threat detection engine
+Exec=konsole -e sudo suricata --help
+Icon=security-high
+Terminal=false
+Categories=NullLinux-BlueTeam;NullLinux-Network;

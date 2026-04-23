@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SpiderFoot
+Comment=OSINT automation tool
+Exec=konsole -e spiderfoot -l 127.0.0.1:5001
+Icon=preferences-system-search
+Terminal=false
+Categories=NullLinux-OSINT;

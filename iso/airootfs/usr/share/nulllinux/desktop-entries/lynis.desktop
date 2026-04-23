@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Lynis
+Comment=Security auditing tool
+Exec=konsole -e sudo lynis audit system
+Icon=security-high
+Terminal=false
+Categories=NullLinux-BlueTeam;

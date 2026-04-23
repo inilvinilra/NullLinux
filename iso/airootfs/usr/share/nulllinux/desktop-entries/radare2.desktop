@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Radare2
+Comment=Reverse engineering framework
+Exec=konsole -e r2 -h
+Icon=applications-development
+Terminal=false
+Categories=NullLinux-Exploitation;

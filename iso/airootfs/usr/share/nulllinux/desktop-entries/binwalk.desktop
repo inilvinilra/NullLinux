@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Binwalk
+Comment=Firmware analysis tool
+Exec=konsole -e binwalk --help
+Icon=drive-harddisk
+Terminal=false
+Categories=NullLinux-Forensics;

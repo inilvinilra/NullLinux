@@ -1,0 +1,25 @@
+pkgname=nulllinux-wireless
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux Wireless — wireless network auditing and attack tools"
+arch=('any')
+url="https://github.com/xredjhon/NullLinux"
+license=('MIT')
+depends=(
+  'aircrack-ng'
+  'kismet'
+  'wifite'
+  'reaver'
+  'bully'
+  'pixiewps'
+  'hostapd'
+  'mdk4'
+  'cowpatty'
+  'hcxdumptool'
+  'hcxtools'
+  'wifiphisher'
+)
+
+package() {
+  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/wireless"
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"
+  "http://www.freedesktop.org/standards/menu-spec/menu-1.0.dtd">
+<Menu>
+  <Name>Applications</Name>
+
+  <Menu>
+    <Name>NullLinux-Security</Name>
+    <Directory>nulllinux-security.directory</Directory>
+
+    <Menu>
+      <Name>NullLinux-RedTeam</Name>
+      <Directory>nulllinux-redteam.directory</Directory>
+      <Include><Category>NullLinux-RedTeam</Category></Include>
+    </Menu>
+
+    <Menu>
+      <Name>NullLinux-BlueTeam</Name>
+      <Directory>nulllinux-blueteam.directory</Directory>
+      <Include><Category>NullLinux-BlueTeam</Category></Include>
+    </Menu>
+
+    <Menu>
+      <Name>NullLinux-OSINT</Name>
+      <Directory>nulllinux-osint.directory</Directory>
+      <Include><Category>NullLinux-OSINT</Category></Include>
+    </Menu>
+
+    <Menu>
+      <Name>NullLinux-OPSEC</Name>
+      <Directory>nulllinux-opsec.directory</Directory>
+      <Include><Category>NullLinux-OPSEC</Category></Include>
+    </Menu>
+
+    <Menu>
+      <Name>NullLinux-Network</Name>
+      <Directory>nulllinux-network.directory</Directory>
+      <Include><Category>NullLinux-Network</Category></Include>
+    </Menu>
+
+    <Menu>
+      <Name>NullLinux-Forensics</Name>
+      <Directory>nulllinux-forensics.directory</Directory>
+      <Include><Category>NullLinux-Forensics</Category></Include>
+    </Menu>
+
+    <Menu>
+      <Name>NullLinux-Web</Name>
+      <Directory>nulllinux-web.directory</Directory>
+      <Include><Category>NullLinux-Web</Category></Include>
+    </Menu>
+
+    <Menu>
+      <Name>NullLinux-Wireless</Name>
+      <Directory>nulllinux-wireless.directory</Directory>
+      <Include><Category>NullLinux-Wireless</Category></Include>
+    </Menu>
+
+    <Menu>
+      <Name>NullLinux-Exploitation</Name>
+      <Directory>nulllinux-exploitation.directory</Directory>
+      <Include><Category>NullLinux-Exploitation</Category></Include>
+    </Menu>
+  </Menu>
+</Menu>

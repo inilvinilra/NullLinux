@@ -1,0 +1,48 @@
+[__config__]
+oldver = ".nvchecker/oldver.json"
+newver = ".nvchecker/newver.json"
+
+[null-toolkit]
+source = "github"
+github = "xredjhon/NullLinux"
+use_latest_tag = true
+
+[nmap]
+source = "repology"
+repology = "nmap"
+repo = "arch_extra"
+
+[metasploit]
+source = "repology"
+repology = "metasploit-framework"
+repo = "blackarch"
+
+[wireshark]
+source = "repology"
+repology = "wireshark"
+repo = "arch_extra"
+
+[aircrack-ng]
+source = "repology"
+repology = "aircrack-ng"
+repo = "arch_extra"
+
+[ghidra]
+source = "repology"
+repology = "ghidra"
+repo = "blackarch"
+
+[nuclei]
+source = "github"
+github = "projectdiscovery/nuclei"
+use_latest_release = true
+
+[ffuf]
+source = "github"
+github = "ffuf/ffuf"
+use_latest_release = true
+
+[amass]
+source = "github"
+github = "owasp-amass/amass"
+use_latest_release = true

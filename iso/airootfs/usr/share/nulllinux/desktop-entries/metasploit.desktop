@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Metasploit Framework
+Comment=Penetration testing framework
+Exec=konsole -e msfconsole
+Icon=utilities-terminal
+Terminal=false
+Categories=NullLinux-RedTeam;NullLinux-Exploitation;

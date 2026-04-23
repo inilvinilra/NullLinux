@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Null Linux
+Description=Null Linux dark boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/nulllinux
+ScriptFile=/usr/share/plymouth/themes/nulllinux/nulllinux.script

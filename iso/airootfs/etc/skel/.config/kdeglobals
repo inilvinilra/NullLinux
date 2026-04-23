@@ -1,7 +1,10 @@
 [General]
 ColorScheme=BreezeDark
-Name=Null Linux
-iconTheme=Papirus-Dark
+Name=Breeze Dark
+widgetStyle=Breeze
+
+[Icons]
+Theme=Papirus-Dark
 
 [KDE]
 LookAndFeelPackage=org.kde.breezedark.desktop

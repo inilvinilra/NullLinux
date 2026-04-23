@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Null Linux OPSEC
-Comment=Show OPSEC tools availability
-Exec=konsole -e /usr/local/bin/null-tools-menu opsec
-Icon=security-low
-Terminal=false
-Categories=Security;X-NullLinux-OPSEC;

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Volatility 3
+Comment=Memory forensics framework
+Exec=konsole -e vol --help
+Icon=drive-harddisk
+Terminal=false
+Categories=NullLinux-Forensics;NullLinux-BlueTeam;

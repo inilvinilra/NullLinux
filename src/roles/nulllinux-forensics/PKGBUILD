@@ -1,0 +1,28 @@
+pkgname=nulllinux-forensics
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux Forensics — digital forensics, disk and memory analysis"
+arch=('any')
+url="https://github.com/xredjhon/NullLinux"
+license=('MIT')
+depends=(
+  'autopsy'
+  'sleuthkit'
+  'volatility3'
+  'binwalk'
+  'foremost'
+  'scalpel'
+  'bulk-extractor'
+  'dc3dd'
+  'plaso'
+  'yara'
+  'exiftool'
+  'hashdeep'
+  'testdisk'
+  'chkrootkit'
+  'unhide'
+)
+
+package() {
+  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/forensics"
+}

@@ -1,0 +1,18 @@
+name: Wireless
+description: Wireless network auditing and attack tools
+packages:
+  - aircrack-ng
+  - kismet
+  - wifite
+  - reaver
+  - bully
+  - pixiewps
+  - hostapd
+  - mdk4
+  - fluxion
+  - cowpatty
+  - fern-wifi-cracker
+  - wash
+  - hcxdumptool
+  - hcxtools
+  - wifiphisher

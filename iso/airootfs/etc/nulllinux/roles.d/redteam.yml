@@ -1,0 +1,27 @@
+name: Red Team
+description: Offensive security and penetration testing tools
+packages:
+  - nmap
+  - metasploit
+  - sqlmap
+  - john
+  - hashcat
+  - hydra
+  - gobuster
+  - responder
+  - impacket
+  - crackmapexec
+  - bloodhound
+  - mimikatz
+  - seclists
+  - wordlists
+  - enum4linux
+  - evil-winrm
+  - chisel
+  - ligolo-ng
+  - kerbrute
+  - rubeus
+  - powershell-empire
+  - covenant
+  - sliver
+  - havoc
