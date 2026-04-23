@@ -72,6 +72,7 @@ openssl
 xorg-server
 plasma-desktop
 plasma-workspace
+plasma-x11-session
 plasma-nm
 plasma-pa
 plasma-systemmonitor

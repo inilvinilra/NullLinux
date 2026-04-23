@@ -4,6 +4,12 @@ theme=Breeze
 
 [Compositing]
 Backend=OpenGL
+AnimationSpeed=2
+GLCore=true
 
 [Effect-overview]
 BorderActivate=9
+
+[Plugins]
+slideEnabled=false
+fadeEnabled=false

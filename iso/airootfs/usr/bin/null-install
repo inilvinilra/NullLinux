@@ -169,14 +169,8 @@ systemctl enable NetworkManager.service
 systemctl enable sddm.service
 systemctl enable ufw.service
 
-cat >> /etc/pacman.conf <<'REPOS'
-
-[blackarch]
-Include = /etc/pacman.d/blackarch-mirrorlist
-
-[chaotic-aur]
-Include = /etc/pacman.d/chaotic-mirrorlist
-REPOS
+pacman-key --init
+pacman-key --populate archlinux blackarch chaotic
 
 bootctl --path=/boot install
 mkdir -p /boot/loader/entries
@@ -200,6 +194,11 @@ xdg-user-dirs-update
 POSTEOF
 
   chmod +x "$TARGET/root/null-postinstall.sh"
+
+  cp -f /etc/pacman.conf "$TARGET/etc/pacman.conf"
+  cp -f /etc/pacman.d/blackarch-mirrorlist "$TARGET/etc/pacman.d/blackarch-mirrorlist" 2>/dev/null || true
+  cp -f /etc/pacman.d/chaotic-mirrorlist "$TARGET/etc/pacman.d/chaotic-mirrorlist" 2>/dev/null || true
+
   arch-chroot "$TARGET" /root/null-postinstall.sh
   rm -f "$TARGET/root/null-postinstall.sh"
 

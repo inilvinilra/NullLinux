@@ -44,6 +44,9 @@ null ALL=(ALL) NOPASSWD: ALL
 EOF
 chmod 0440 /etc/sudoers.d/10-null
 
+pacman-key --init
+pacman-key --populate archlinux blackarch chaotic
+
 systemctl enable NetworkManager.service
 systemctl disable NetworkManager-wait-online.service || true
 systemctl enable sddm.service
@@ -57,7 +60,7 @@ mkdir -p /etc/sddm.conf.d
 cat > /etc/sddm.conf.d/autologin.conf <<'SDDM'
 [Autologin]
 User=null
-Session=plasma
+Session=plasmax11
 SDDM
 
 systemctl mask systemd-firstboot.service

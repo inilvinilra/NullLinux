@@ -14,7 +14,7 @@ if [[ -z "${ISO_PATH}" || ! -f "${ISO_PATH}" ]]; then
 fi
 
 if [[ -e /dev/kvm ]]; then
-  ACCEL_ARGS=(-enable-kvm)
+  ACCEL_ARGS=(-enable-kvm -cpu host)
 fi
 
 COMMON_QEMU_ARGS=(
@@ -23,8 +23,10 @@ COMMON_QEMU_ARGS=(
   "${ACCEL_ARGS[@]}"
   -cdrom "$ISO_PATH"
   -boot d
-  -vga virtio
-  -display gtk,gl=on
-  -netdev user,id=n1
+  -vga qxl
+  -display gtk
   -device virtio-net-pci,netdev=n1
+  -netdev user,id=n1
+  -device intel-hda -device hda-duplex
+  -usb -device usb-tablet
 )
