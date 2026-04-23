@@ -1,0 +1,2 @@
+Server = https://www.mirrorservice.org/sites/blackarch.org/blackarch/$repo/os/$arch
+Server = https://blackarch.mirror.garr.it/mirrors/blackarch/$repo/os/$arch
