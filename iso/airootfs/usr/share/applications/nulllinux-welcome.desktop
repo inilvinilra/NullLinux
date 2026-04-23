@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Null Welcome
+Comment=Tool catalog and install entrypoint
+Exec=/usr/local/bin/null-welcome
+Icon=applications-system
+Terminal=false
+Categories=System;Settings;

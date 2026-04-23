@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -x /usr/local/bin/nullwelcome ]]; then
+  exec /usr/local/bin/nullwelcome
+fi
+
+if [[ -x /opt/nullwelcome/nullwelcome ]]; then
+  exec /opt/nullwelcome/nullwelcome
+fi
+
+if command -v konsole >/dev/null 2>&1; then
+  exec konsole -e /usr/local/bin/null-welcome-install --list-groups
+fi
+
+exec /usr/local/bin/null-welcome-install --list-groups
