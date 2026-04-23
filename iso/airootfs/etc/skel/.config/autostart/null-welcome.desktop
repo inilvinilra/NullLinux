@@ -1,5 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Null Linux Welcome
-Exec=konsole -e null-welcome
-X-KDE-autostart-condition=ksmserver:startupdone

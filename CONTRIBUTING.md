@@ -21,7 +21,6 @@
 - `iso/` — archiso profile (packages, boot config, airootfs overlay)
 - `src/roles/` — metapackage PKGBUILDs for each security role
 - `src/tools/` — null-toolkit CLI source
-- `src/apps/` — null-welcome app source
 - `src/installer/` — null-install TUI installer source
 - `config/roles/` — YAML role definitions (package lists)
 - `scripts/` — build and test helpers

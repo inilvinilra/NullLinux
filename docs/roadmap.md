@@ -37,7 +37,6 @@
 - [x] Styled .bashrc with security aliases
 - [x] Plymouth boot splash with logo
 - [x] systemd-boot/Syslinux quiet splash entries
-- [x] null-welcome TUI app (autostart on login)
 - [x] Wallpapers and logo bundled in ISO
 
 ## Phase 5 — Installer, Hardening & CI (DONE)

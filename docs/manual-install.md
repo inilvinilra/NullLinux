@@ -50,6 +50,5 @@ The script will:
 ### After Reboot
 
 - Log in with the created user
-- Run `null-welcome` for setup guidance
 - Install security roles: `sudo null-toolkit install redteam`
 - Update the system: `sudo pacman -Syu`

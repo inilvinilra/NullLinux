@@ -10,7 +10,6 @@ role-based security tooling, and access to Arch, BlackArch, and Chaotic-AUR repo
 - **9 security roles** — Red Team, Blue Team, OSINT, OPSEC, Network, Forensics, Web, Wireless, Exploitation
 - **null-toolkit CLI** — install/remove security tool categories on demand
 - **null-install TUI** — dialog-based installer with role selection
-- **null-welcome** — first-boot welcome app with system info and quick actions
 - **Hardened defaults** — ufw firewall, SSH key-only, restrictive file permissions
 - **Plymouth** branded boot splash
 - **BIOS + UEFI** boot support
@@ -24,7 +23,6 @@ iso/                archiso profile, packages, boot config, live rootfs
 src/
   roles/            metapackage PKGBUILDs per security role
   tools/            null-toolkit CLI
-  apps/             null-welcome app
   installer/        null-install TUI installer
 config/roles/       YAML role definitions
 scripts/            build, test, and QEMU helpers

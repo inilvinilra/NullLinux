@@ -28,7 +28,7 @@ plugin=org.kde.plasma.kickoff
 
 [Containments][2][Applets][3][Configuration][General]
 icon=start-here-kde
-favoriteApps=preferred://filemanager,preferred://browser,org.kde.konsole.desktop,null-welcome.desktop
+favoriteApps=preferred://filemanager,preferred://browser,org.kde.konsole.desktop
 
 [Containments][2][Applets][4]
 immutability=1
@@ -39,7 +39,7 @@ immutability=1
 plugin=org.kde.plasma.icontasks
 
 [Containments][2][Applets][5][Configuration][General]
-launchers=preferred://filemanager,org.kde.konsole.desktop,org.kde.kate.desktop,null-welcome.desktop
+launchers=preferred://filemanager,org.kde.konsole.desktop,org.kde.kate.desktop
 
 [Containments][2][Applets][6]
 immutability=1

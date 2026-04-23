@@ -32,7 +32,6 @@ See README.md for setup instructions.
 - [ ] Papirus-Dark icons visible
 - [ ] NullLinux wallpaper set
 - [ ] Panel layout: app launcher, task bar, system tray, clock
-- [ ] null-welcome launches on first login
 
 ### Networking & Security
 - [ ] NetworkManager connects (`nmcli`)

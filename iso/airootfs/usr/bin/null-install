@@ -205,7 +205,7 @@ POSTEOF
 
   dialog --backtitle "$BACKTITLE" --infobox "Copying Null Linux tools..." 3 45
 
-  for tool in null-toolkit null-welcome null-install; do
+  for tool in null-toolkit null-install; do
     if [[ -f "/usr/bin/$tool" ]]; then
       install -Dm755 "/usr/bin/$tool" "$TARGET/usr/bin/$tool"
     fi

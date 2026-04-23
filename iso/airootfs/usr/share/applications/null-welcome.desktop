@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Null Linux Welcome
-Comment=Null Linux setup and role manager
-Exec=konsole -e null-welcome
-Icon=utilities-terminal
-Categories=System;
-Keywords=welcome;setup;roles;toolkit;
