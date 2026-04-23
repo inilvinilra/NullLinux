@@ -1,0 +1,11 @@
+pkgname=nulllinux-devtools
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux - Development & Build Environments"
+arch=('any')
+license=('MIT')
+depends=(
+  base-devel git python python-pip go rustup
+  gcc clang cmake make nodejs npm jdk-openjdk
+  ruby vscodium
+)

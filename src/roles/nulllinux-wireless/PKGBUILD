@@ -1,23 +1,15 @@
 pkgname=nulllinux-wireless
 pkgver=0.2.0
 pkgrel=1
-pkgdesc="Null Linux Wireless — wireless network auditing and attack tools"
+pkgdesc="Null Linux - Wireless network auditing, WiFi attacks, and RF tools"
 arch=('any')
-url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  'aircrack-ng'
-  'kismet'
-  'wifite'
-  'reaver'
-  'bully'
-  'pixiewps'
-  'hostapd'
-  'mdk4'
-  'cowpatty'
-  'hcxdumptool'
-  'hcxtools'
-  'wifiphisher'
+  aircrack-ng kismet wifite hcxdumptool hcxtools
+  reaver pixiewps hostapd-wpe freeradius fluxion
+  bully fern-wifi-cracker cowpatty mdk4 asleap
+  eapmd5pass wifi-honey gnuradio gqrx hackrf
+  wifiphisher
 )
 
 package() {

@@ -1,29 +1,15 @@
 pkgname=nulllinux-web
 pkgver=0.2.0
 pkgrel=1
-pkgdesc="Null Linux Web — web application security testing tools"
+pkgdesc="Null Linux - Web application penetration testing and vulnerability scanning"
 arch=('any')
-url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  'burpsuite'
-  'zaproxy'
-  'nikto'
-  'sqlmap'
-  'wfuzz'
-  'ffuf'
-  'dirb'
-  'wpscan'
-  'nuclei'
-  'httpx'
-  'whatweb'
-  'arjun'
-  'commix'
-  'xsstrike'
-  'dalfox'
-  'gospider'
-  'hakrawler'
-  'sublist3r'
+  ffuf feroxbuster dalfox sqlmap burpsuite wpscan
+  zaproxy dirb gobuster dirbuster beef nikto
+  w3af wapiti arachni skipfish commix xsstrike
+  xsser wfuzz nuclei httpx whatweb arjun
+  gospider hakrawler
 )
 
 package() {

@@ -1,20 +1,36 @@
-name: OSINT
-description: Open source intelligence gathering and reconnaissance
+name: OSINT & Recon
+description: Open source intelligence gathering, reconnaissance, and asset discovery
 packages:
-  - maltego
-  - spiderfoot
-  - recon-ng
-  - theharvester
-  - sherlock
   - amass
   - subfinder
-  - photon
-  - metagoofil
-  - holehe
-  - ghunt
+  - httpx
+  - naabu
+  - python-shodan
+  - sherlock
   - phoneinfoga
-  - socialscan
-  - twint
-  - exiftool
+  - spiderfoot
+  - sn0int
+  - metagoofil
+  - sublist3r
+  - whatweb
+  - wafw00f
+  - findomain
+  - nuclei
+  - nuclei-templates
+  - recon-ng
+  - maltego
+  - theharvester
+  - dnsenum
+  - dnsrecon
   - dmitry
+  - osrframework
+  - urlcrazy
+  - rustscan
+  - masscan
+  - nmap
+  - zmap
   - fierce
+  - photon
+  - holehe
+  - socialscan
+  - perl-image-exiftool

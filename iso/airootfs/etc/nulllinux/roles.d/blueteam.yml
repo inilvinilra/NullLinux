@@ -1,5 +1,5 @@
-name: Blue Team
-description: Defensive security, monitoring, and incident response tools
+name: Blue Team & Defense
+description: Defensive security, monitoring, IDS/IPS, and incident response
 packages:
   - wireshark-qt
   - suricata
@@ -9,13 +9,14 @@ packages:
   - clamav
   - lynis
   - rkhunter
+  - chkrootkit
   - aide
   - ossec-hids
   - velociraptor
-  - arkime
   - wazuh-agent
   - fail2ban
   - snort
   - syslog-ng
   - logwatch
   - tripwire
+  - osquery

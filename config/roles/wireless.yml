@@ -1,18 +1,24 @@
-name: Wireless
-description: Wireless network auditing and attack tools
+name: Wireless & RF Attacks
+description: Wireless network auditing, WiFi attacks, and RF tools
 packages:
   - aircrack-ng
   - kismet
   - wifite
-  - reaver
-  - bully
-  - pixiewps
-  - hostapd
-  - mdk4
-  - fluxion
-  - cowpatty
-  - fern-wifi-cracker
-  - wash
   - hcxdumptool
   - hcxtools
+  - reaver
+  - pixiewps
+  - hostapd-wpe
+  - freeradius
+  - fluxion
+  - bully
+  - fern-wifi-cracker
+  - cowpatty
+  - mdk4
+  - asleap
+  - eapmd5pass
+  - wifi-honey
+  - gnuradio
+  - gqrx
+  - hackrf
   - wifiphisher

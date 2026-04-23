@@ -1,0 +1,45 @@
+name: Essential Tools & Applications
+description: Daily use applications, virtualization, communication, and utilities
+packages:
+  - flatpak
+  - docker
+  - docker-compose
+  - podman
+  - podman-compose
+  - distrobox
+  - virt-manager
+  - qemu-desktop
+  - dnsmasq
+  - qemu-full
+  - ayugram-desktop-bin
+  - gajim
+  - element-desktop
+  - signal-desktop
+  - session-desktop-bin
+  - discord
+  - qtox
+  - zapzap
+  - thunderbird
+  - flameshot
+  - rustdesk
+  - remmina
+  - freerdp
+  - gufw
+  - terminator
+  - btop
+  - ventoy
+  - ungoogled-chromium
+  - putty
+  - scrcpy
+  - filezilla
+  - mpv
+  - obs-studio
+  - qbittorrent
+  - logseq-desktop-bin
+  - freetube
+  - 7-zip
+  - keepassxc
+  - megasync
+  - nextcloud-client
+  - syncthing
+  - bleachbit

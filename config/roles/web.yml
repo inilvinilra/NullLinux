@@ -1,22 +1,29 @@
-name: Web Pentesting
-description: Web application security testing tools
+name: Web Application Security
+description: Web application penetration testing and vulnerability scanning
 packages:
-  - burpsuite
-  - zaproxy
-  - nikto
-  - sqlmap
-  - wfuzz
   - ffuf
-  - dirb
+  - feroxbuster
+  - dalfox
+  - sqlmap
+  - burpsuite
   - wpscan
+  - zaproxy
+  - dirb
+  - gobuster
+  - dirbuster
+  - beef
+  - nikto
+  - w3af
+  - wapiti
+  - arachni
+  - skipfish
+  - commix
+  - xsstrike
+  - xsser
+  - wfuzz
   - nuclei
   - httpx
   - whatweb
   - arjun
-  - paramspider
-  - commix
-  - xsstrike
-  - dalfox
   - gospider
   - hakrawler
-  - sublist3r

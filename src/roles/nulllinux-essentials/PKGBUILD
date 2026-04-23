@@ -1,0 +1,15 @@
+pkgname=nulllinux-essentials
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux - Essential Tools & Applications"
+arch=('any')
+license=('MIT')
+depends=(
+  flatpak docker docker-compose podman podman-compose
+  distrobox virt-manager qemu-desktop dnsmasq qemu-full
+  element-desktop discord thunderbird flameshot
+  remmina freerdp gufw terminator btop
+  ungoogled-chromium putty scrcpy filezilla
+  mpv obs-studio qbittorrent 7-zip keepassxc
+  syncthing bleachbit
+)

@@ -1,30 +1,16 @@
 pkgname=nulllinux-redteam
 pkgver=0.2.0
 pkgrel=1
-pkgdesc="Null Linux Red Team — offensive security and penetration testing tools"
+pkgdesc="Null Linux - Full offensive security and penetration testing toolkit"
 arch=('any')
-url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  'nmap'
-  'metasploit'
-  'sqlmap'
-  'john'
-  'hashcat'
-  'hydra'
-  'gobuster'
-  'responder'
-  'impacket'
-  'crackmapexec'
-  'bloodhound'
-  'enum4linux'
-  'evil-winrm'
-  'chisel'
-  'kerbrute'
-  'seclists'
-  'wordlists'
-  'powershell-empire'
-  'sliver'
+  nmap metasploit sqlmap john hashcat seclists
+  raft-wordlists hydra medusa ncrack crunch gobuster
+  responder impacket bloodhound mimikatz enum4linux
+  evil-winrm ligolo-ng netexec certipy-ad wordlists
+  cewl hashid ophcrack fcrackzip pdfcrack rsmangler
+  kerbrute rubeus sliver havoc
 )
 
 package() {

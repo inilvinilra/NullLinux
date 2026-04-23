@@ -1,26 +1,14 @@
 pkgname=nulllinux-forensics
 pkgver=0.2.0
 pkgrel=1
-pkgdesc="Null Linux Forensics — digital forensics, disk and memory analysis"
+pkgdesc="Null Linux - Digital forensics, incident response, steganography, and malware triage"
 arch=('any')
-url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  'autopsy'
-  'sleuthkit'
-  'volatility3'
-  'binwalk'
-  'foremost'
-  'scalpel'
-  'bulk-extractor'
-  'dc3dd'
-  'plaso'
-  'yara'
-  'exiftool'
-  'hashdeep'
-  'testdisk'
-  'chkrootkit'
-  'unhide'
+  volatility3 autopsy guymager sleuthkit scalpel ddrescue
+  cyberchef perl-image-exiftool steghide stegseek stegosuite
+  osquery binwalk foremost chkrootkit rkhunter
+  yara strelka bulk-extractor testdisk hashdeep plaso
 )
 
 package() {

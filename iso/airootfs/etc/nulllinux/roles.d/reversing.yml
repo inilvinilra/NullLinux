@@ -1,0 +1,18 @@
+name: Reverse Engineering & Malware Analysis
+description: Binary analysis, debugging, decompilation, and malware research
+packages:
+  - ghidra
+  - radare2
+  - edb-debugger
+  - ltrace
+  - strace
+  - gdb
+  - apktool
+  - jadx
+  - dex2jar
+  - cutter
+  - ropper
+  - ropgadget
+  - checksec
+  - pwndbg
+  - one_gadget

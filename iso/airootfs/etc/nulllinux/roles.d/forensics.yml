@@ -1,20 +1,25 @@
-name: Forensics
-description: Digital forensics, disk analysis, and memory examination
+name: Forensics, DFIR & Steganography
+description: Digital forensics, incident response, steganography, and malware triage
 packages:
-  - autopsy
-  - sleuthkit
   - volatility3
+  - autopsy
+  - guymager
+  - sleuthkit
+  - scalpel
+  - ddrescue
+  - cyberchef
+  - perl-image-exiftool
+  - steghide
+  - stegseek
+  - stegosuite
+  - osquery
   - binwalk
   - foremost
-  - scalpel
-  - bulk-extractor
-  - dc3dd
-  - guymager
-  - plaso
-  - yara
-  - exiftool
-  - hashdeep
-  - testdisk
-  - photorec
   - chkrootkit
-  - unhide
+  - rkhunter
+  - yara
+  - strelka
+  - bulk-extractor
+  - testdisk
+  - hashdeep
+  - plaso

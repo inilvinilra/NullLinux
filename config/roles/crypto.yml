@@ -1,0 +1,8 @@
+name: Crypto & Finance
+description: Cryptocurrency wallets and decentralized exchange tools
+packages:
+  - monero-gui
+  - electrum
+  - trezor-suite-bin
+  - bisq
+  - agoradesk-bin

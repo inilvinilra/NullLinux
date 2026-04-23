@@ -1,0 +1,10 @@
+pkgname=nulllinux-crypto
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux - Cryptocurrency & Finance"
+arch=('any')
+license=('MIT')
+depends=(
+  monero-gui electrum trezor-suite-bin
+  bisq agoradesk-bin
+)

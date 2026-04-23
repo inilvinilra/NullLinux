@@ -1,0 +1,18 @@
+name: Development & Build Environments
+description: Programming languages, compilers, and build systems
+packages:
+  - base-devel
+  - git
+  - python
+  - python-pip
+  - go
+  - rustup
+  - gcc
+  - clang
+  - cmake
+  - make
+  - nodejs
+  - npm
+  - jdk-openjdk
+  - ruby
+  - vscodium

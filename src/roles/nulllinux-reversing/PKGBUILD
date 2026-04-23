@@ -1,0 +1,11 @@
+pkgname=nulllinux-reversing
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Null Linux - Reverse Engineering & Malware Analysis"
+arch=('any')
+license=('MIT')
+depends=(
+  ghidra radare2 edb-debugger ltrace strace gdb
+  apktool jadx dex2jar cutter ropper ropgadget
+  checksec pwndbg one_gadget
+)

@@ -1,8 +1,9 @@
-name: OPSEC
-description: Operational security, privacy, and anonymity tools
+name: OPSEC & Privacy
+description: Operational security, privacy, anonymity, and encryption tools
 packages:
   - tor
   - torsocks
+  - torbrowser-launcher
   - proxychains-ng
   - macchanger
   - bleachbit
@@ -11,9 +12,21 @@ packages:
   - mat2
   - onionshare
   - i2pd
-  - kloak
-  - secure-delete
   - veracrypt
+  - cryptomator
   - keepassxc
+  - bitwarden
+  - kleopatra
   - age
   - gnupg
+  - exifcleaner
+  - mullvad-browser
+  - librewolf
+  - proton-vpn-gtk-app
+  - protonmail-bridge
+  - wireguard-tools
+  - openvpn
+  - simplex-chat-bin
+  - signal-desktop
+  - session-desktop-bin
+  - briar-desktop

@@ -1,25 +1,17 @@
 pkgname=nulllinux-osint
 pkgver=0.2.0
 pkgrel=1
-pkgdesc="Null Linux OSINT — open source intelligence gathering and reconnaissance"
+pkgdesc="Null Linux - Open source intelligence gathering, reconnaissance, and asset discovery"
 arch=('any')
-url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  'maltego'
-  'spiderfoot'
-  'recon-ng'
-  'theharvester'
-  'sherlock'
-  'amass'
-  'subfinder'
-  'photon'
-  'metagoofil'
-  'holehe'
-  'phoneinfoga'
-  'exiftool'
-  'dmitry'
-  'fierce'
+  amass subfinder httpx naabu python-shodan sherlock
+  phoneinfoga spiderfoot sn0int metagoofil sublist3r
+  whatweb wafw00f findomain nuclei nuclei-templates
+  recon-ng maltego theharvester dnsenum dnsrecon
+  dmitry osrframework urlcrazy rustscan masscan
+  nmap zmap fierce photon holehe socialscan
+  perl-image-exiftool
 )
 
 package() {

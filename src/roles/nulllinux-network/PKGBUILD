@@ -1,31 +1,15 @@
 pkgname=nulllinux-network
 pkgver=0.2.0
 pkgrel=1
-pkgdesc="Null Linux Network — network analysis, sniffing, and traffic tools"
+pkgdesc="Null Linux - Network monitoring, packet capture, IDS/IPS, and MITM tools"
 arch=('any')
-url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  'wireshark-qt'
-  'tcpdump'
-  'nmap'
-  'masscan'
-  'openbsd-netcat'
-  'bettercap'
-  'ettercap'
-  'arpwatch'
-  'traceroute'
-  'mtr'
-  'hping'
-  'netdiscover'
-  'iperf3'
-  'dnsutils'
-  'whois'
-  'ngrep'
-  'tshark'
-  'zeek'
-  'p0f'
-  'dnsenum'
+  zeek suricata wireshark-qt wireshark-cli networkminer
+  ettercap-gtk bettercap mitmproxy dsniff netsniff-ng
+  scapy tcpdump nmap masscan openbsd-netcat arpwatch
+  traceroute mtr hping netdiscover iperf3
+  dnsutils whois ngrep p0f
 )
 
 package() {

@@ -1,24 +1,14 @@
 pkgname=nulllinux-blueteam
 pkgver=0.2.0
 pkgrel=1
-pkgdesc="Null Linux Blue Team — defensive security, monitoring, and incident response"
+pkgdesc="Null Linux - Defensive security, monitoring, IDS/IPS, and incident response"
 arch=('any')
-url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  'wireshark-qt'
-  'suricata'
-  'zeek'
-  'yara'
-  'volatility3'
-  'clamav'
-  'lynis'
-  'rkhunter'
-  'aide'
-  'fail2ban'
-  'snort'
-  'syslog-ng'
-  'logwatch'
+  wireshark-qt suricata zeek yara volatility3 clamav
+  lynis rkhunter chkrootkit aide ossec-hids velociraptor
+  wazuh-agent fail2ban snort syslog-ng logwatch
+  tripwire osquery
 )
 
 package() {

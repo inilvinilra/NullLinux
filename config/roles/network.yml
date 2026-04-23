@@ -1,13 +1,21 @@
-name: Network
-description: Network analysis, sniffing, and traffic manipulation
+name: Network Traffic Analysis & Sniffing
+description: Network monitoring, packet capture, IDS/IPS, and MITM tools
 packages:
+  - zeek
+  - suricata
   - wireshark-qt
+  - wireshark-cli
+  - networkminer
+  - ettercap-gtk
+  - bettercap
+  - mitmproxy
+  - dsniff
+  - netsniff-ng
+  - scapy
   - tcpdump
   - nmap
   - masscan
   - openbsd-netcat
-  - bettercap
-  - ettercap
   - arpwatch
   - traceroute
   - mtr
@@ -17,7 +25,4 @@ packages:
   - dnsutils
   - whois
   - ngrep
-  - tshark
-  - zeek
   - p0f
-  - dnsenum
