@@ -43,7 +43,11 @@ OVMF_VARS_TEMPLATE="$(find_ovmf_vars)" || {
 
 OVMF_VARS="$ROOT_DIR/work/OVMF_VARS.fd"
 mkdir -p "$ROOT_DIR/work"
-cp -f "$OVMF_VARS_TEMPLATE" "$OVMF_VARS"
+# Persist NVRAM across boots. If we overwrite this every run, the VM forgets
+# installed boot entries and starts from the live ISO again.
+if [[ ! -f "$OVMF_VARS" || "${NULLLINUX_RESET_OVMF_VARS:-0}" == "1" ]]; then
+  cp -f "$OVMF_VARS_TEMPLATE" "$OVMF_VARS"
+fi
 
 echo "OVMF CODE: $OVMF_CODE" >&2
 

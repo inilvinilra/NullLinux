@@ -92,6 +92,7 @@ kde-gtk-config
 kwallet-pam
 kscreen
 powerdevil
+spice-vdagent
 
 # ── Browser ─────────────────────────────────────────────────
 firefox

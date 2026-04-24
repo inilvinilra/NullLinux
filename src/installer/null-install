@@ -13,6 +13,81 @@ NC='\033[0m'
 
 die() { echo -e "${RED}Error: $*${NC}" >&2; exit 1; }
 
+prompt_required_password() {
+  local title="$1"
+  local prompt="$2"
+  local value=""
+
+  while true; do
+    value="$(dialog --backtitle "$BACKTITLE" --title "$title" \
+      --insecure --passwordbox "$prompt" 8 56 3>&1 1>&2 2>&3)" || {
+      dialog --backtitle "$BACKTITLE" --msgbox "Password is required." 6 36
+      continue
+    }
+
+    if [[ -z "$value" ]]; then
+      dialog --backtitle "$BACKTITLE" --msgbox "Password cannot be empty." 6 38
+      continue
+    fi
+
+    local confirm
+    confirm="$(dialog --backtitle "$BACKTITLE" --title "${title} (Confirm)" \
+      --insecure --passwordbox "Re-enter password:" 8 56 3>&1 1>&2 2>&3)" || {
+      dialog --backtitle "$BACKTITLE" --msgbox "Password confirmation is required." 6 48
+      continue
+    }
+
+    if [[ "$value" != "$confirm" ]]; then
+      dialog --backtitle "$BACKTITLE" --msgbox "Passwords do not match. Try again." 6 44
+      continue
+    fi
+
+    printf '%s' "$value"
+    return 0
+  done
+}
+
+prompt_optional_password() {
+  local title="$1"
+  local prompt="$2"
+  local value=""
+
+  while true; do
+    value="$(dialog --backtitle "$BACKTITLE" --title "$title" \
+      --insecure --passwordbox "$prompt" 9 60 3>&1 1>&2 2>&3)" || {
+      printf ''
+      return 0
+    }
+
+    [[ -z "$value" ]] && { printf ''; return 0; }
+
+    local confirm
+    confirm="$(dialog --backtitle "$BACKTITLE" --title "${title} (Confirm)" \
+      --insecure --passwordbox "Re-enter password (or leave empty to skip):" 9 60 3>&1 1>&2 2>&3)" || {
+      dialog --backtitle "$BACKTITLE" --msgbox "Password confirmation canceled. Try again." 6 52
+      continue
+    }
+
+    if [[ "$value" != "$confirm" ]]; then
+      dialog --backtitle "$BACKTITLE" --msgbox "Passwords do not match. Try again." 6 44
+      continue
+    fi
+
+    printf '%s' "$value"
+    return 0
+  done
+}
+
+make_password_hash() {
+  local plain="$1"
+  if [[ -z "$plain" ]]; then
+    printf ''
+    return 0
+  fi
+  # Use SHA-512 crypt hash to avoid PAM interactive password policy failures.
+  printf '%s' "$plain" | openssl passwd -6 -stdin
+}
+
 check_deps() {
   for cmd in dialog parted mkfs.fat mkfs.ext4 pacstrap genfstab arch-chroot bootctl; do
     command -v "$cmd" >/dev/null 2>&1 || die "Missing dependency: $cmd"
@@ -79,11 +154,8 @@ get_user_config() {
   USERNAME_VALUE="$(dialog --backtitle "$BACKTITLE" --title "Username" \
     --inputbox "Enter username:" 8 50 "null" 3>&1 1>&2 2>&3)" || USERNAME_VALUE="null"
 
-  USER_PASSWORD="$(dialog --backtitle "$BACKTITLE" --title "User Password" \
-    --insecure --passwordbox "Enter password for ${USERNAME_VALUE}:" 8 50 3>&1 1>&2 2>&3)" || USER_PASSWORD=""
-
-  ROOT_PASSWORD="$(dialog --backtitle "$BACKTITLE" --title "Root Password" \
-    --insecure --passwordbox "Enter root password:" 8 50 3>&1 1>&2 2>&3)" || ROOT_PASSWORD=""
+  USER_PASSWORD="$(prompt_required_password "User Password" "Enter password for ${USERNAME_VALUE}:")"
+  ROOT_PASSWORD="$(prompt_optional_password "Root Password (Optional)" "Enter root password (leave empty to disable root login):")"
 
   TIMEZONE_VALUE="$(dialog --backtitle "$BACKTITLE" --title "Timezone" \
     --inputbox "Enter timezone (e.g. Europe/Istanbul, UTC):" 8 60 "UTC" 3>&1 1>&2 2>&3)" || TIMEZONE_VALUE="UTC"
@@ -106,7 +178,7 @@ install_base() {
     xorg-server dolphin konsole kate plasma-desktop plasma-nm plasma-pa \
     plasma-workspace plasma-x11-session plasma-systemmonitor polkit-kde-agent qt6-wayland sddm \
     xdg-desktop-portal-kde xdg-user-dirs xdg-utils breeze breeze-gtk \
-    kde-gtk-config kwallet-pam kscreen powerdevil \
+    kde-gtk-config kwallet-pam kscreen powerdevil spice-vdagent \
     mesa vulkan-icd-loader ttf-dejavu ttf-liberation noto-fonts \
     adwaita-icon-theme papirus-icon-theme archlinux-keyring \
     blackarch-keyring blackarch-mirrorlist chaotic-keyring chaotic-mirrorlist \
@@ -119,9 +191,13 @@ configure_system() {
   local ROOT_UUID
   ROOT_UUID="$(blkid -s UUID -o value "$ROOT_PART")"
 
-  printf '%s' "$USER_PASSWORD" > "$TARGET/root/.user_pw"
-  printf '%s' "$ROOT_PASSWORD" > "$TARGET/root/.root_pw"
-  chmod 600 "$TARGET/root/.user_pw" "$TARGET/root/.root_pw"
+  local USER_PASSWORD_HASH ROOT_PASSWORD_HASH
+  USER_PASSWORD_HASH="$(make_password_hash "$USER_PASSWORD")"
+  ROOT_PASSWORD_HASH="$(make_password_hash "$ROOT_PASSWORD")"
+
+  printf '%s' "$USER_PASSWORD_HASH" > "$TARGET/root/.user_hash"
+  printf '%s' "$ROOT_PASSWORD_HASH" > "$TARGET/root/.root_hash"
+  chmod 600 "$TARGET/root/.user_hash" "$TARGET/root/.root_hash"
 
   cat > "$TARGET/root/null-postinstall.sh" <<POSTEOF
 #!/usr/bin/env bash
@@ -142,9 +218,13 @@ cat > /etc/hosts <<HOSTS
 HOSTS
 
 useradd -m -G wheel,audio,video,storage,optical -s /bin/zsh "${USERNAME_VALUE}"
-printf '%s:%s\n' "${USERNAME_VALUE}" "\$(cat /root/.user_pw)" | chpasswd
-printf '%s:%s\n' "root" "\$(cat /root/.root_pw)" | chpasswd
-rm -f /root/.user_pw /root/.root_pw
+usermod -p "\$(cat /root/.user_hash)" "${USERNAME_VALUE}"
+if [[ -s /root/.root_hash ]]; then
+  usermod -p "\$(cat /root/.root_hash)" root
+else
+  passwd -l root || true
+fi
+rm -f /root/.user_hash /root/.root_hash
 
 install -d -m 0755 /etc/sudoers.d
 printf '%%wheel ALL=(ALL:ALL) ALL\n' > /etc/sudoers.d/01-wheel
@@ -153,9 +233,29 @@ chmod 0440 /etc/sudoers.d/01-wheel
 systemctl enable NetworkManager.service
 systemctl enable sddm.service
 systemctl enable ufw.service
+systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
+
+systemctl mask ModemManager.service 2>/dev/null || true
+systemctl mask lvm2-monitor.service 2>/dev/null || true
+systemctl mask lvm2-lvmpolld.socket 2>/dev/null || true
+systemctl disable bluetooth.service 2>/dev/null || true
 
 pacman-key --init
 pacman-key --populate archlinux blackarch chaotic
+
+mkdir -p /etc/sysctl.d
+cat > /etc/sysctl.d/99-nulllinux-perf.conf <<'SYSCTL'
+vm.swappiness=10
+vm.vfs_cache_pressure=50
+vm.dirty_ratio=10
+vm.dirty_background_ratio=5
+SYSCTL
+
+mkdir -p /etc/xdg
+cat > /etc/xdg/baloofilerc <<'BALOO'
+[Basic Settings]
+Indexing-Enabled=false
+BALOO
 
 bootctl --path=/boot install
 mkdir -p /boot/loader/entries
@@ -204,6 +304,11 @@ POSTEOF
     cp -a /usr/share/nulllinux "$TARGET/usr/share/" 2>/dev/null || true
   fi
 
+  if [[ -f /usr/share/nulllinux/hooks/update-desktop-entries.sh ]]; then
+    install -Dm755 /usr/share/nulllinux/hooks/update-desktop-entries.sh \
+      "$TARGET/usr/share/nulllinux/hooks/update-desktop-entries.sh"
+  fi
+
   for f in /usr/share/desktop-directories/nulllinux-*.directory; do
     [[ -f "$f" ]] && cp -f "$f" "$TARGET/usr/share/desktop-directories/" 2>/dev/null || true
   done
@@ -213,7 +318,7 @@ POSTEOF
       "$TARGET/etc/xdg/menus/applications-merged/nulllinux-security.menu"
   fi
 
-  if [[ -f /usr/share/libalpm/hooks/nulllinux-desktop-entries.hook ]]; then
+  if [[ -f /usr/share/libalpm/hooks/nulllinux-desktop-entries.hook && -x /usr/share/nulllinux/hooks/update-desktop-entries.sh ]]; then
     install -Dm644 /usr/share/libalpm/hooks/nulllinux-desktop-entries.hook \
       "$TARGET/usr/share/libalpm/hooks/nulllinux-desktop-entries.hook"
   fi

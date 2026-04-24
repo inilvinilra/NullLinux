@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Shared helpers for QEMU launcher scripts.
 #
-# Default: QXL + GTK (no GL) — the window appears reliably. virtio-vga-gl + gl=on
-# needs virgl; without it, QEMU may show no window or a black display.
+# Default: QXL + SDL — most stable in mixed host GPU stacks.
+# Enable SPICE + vdagent channel for better dynamic resize behavior.
 #
 #   NULLLINUX_QEMU_VGA=qxl|virtio|virtio-gl
-#   NULLLINUX_QEMU_DISPLAY=gtk|sdl
+#   NULLLINUX_QEMU_DISPLAY=sdl|gtk
 #   NULLLINUX_QEMU_NO_USB=1
 #   NULLLINUX_QEMU_RAM=...   MB
 #   NULLLINUX_QEMU_SMP=...   vCPUs
@@ -41,7 +41,7 @@ if [[ ! -f "$DISK_IMG" ]]; then
 fi
 
 VGA_MODE="${NULLLINUX_QEMU_VGA:-qxl}"
-QEMU_DISPLAY="${NULLLINUX_QEMU_DISPLAY:-gtk}"
+QEMU_DISPLAY="${NULLLINUX_QEMU_DISPLAY:-sdl}"
 declare -a DISPLAY_VGA=()
 
 case "$VGA_MODE" in
@@ -71,10 +71,14 @@ COMMON_QEMU_ARGS=(
   -m "$VM_RAM"
   -smp "$VM_CORES",sockets=1,cores="$VM_CORES",threads=1
   "${ACCEL_ARGS[@]}"
-  -cdrom "$ISO_PATH"
   -drive file="$DISK_IMG",format=qcow2,if=virtio,cache=writeback,discard=unmap
-  -boot d
+  -cdrom "$ISO_PATH"
+  -boot order=cd,menu=on
   "${DISPLAY_VGA[@]}"
+  -spice disable-ticketing=on
+  -device virtio-serial-pci
+  -chardev spicevmc,id=vdagent,name=vdagent
+  -device virtserialport,chardev=vdagent,name=com.redhat.spice.0
   -device virtio-net-pci,netdev=n1
   -netdev user,id=n1
   -device intel-hda -device hda-duplex

@@ -21,30 +21,146 @@ detect_aur_helper() {
 
 AUR_HELPER="$(detect_aur_helper)"
 
+lang_fallback_install() {
+  local pkg="$1"
+  local pip_pkg="$pkg"
+  local ok=false
+
+  case "$pkg" in
+    python-web3) pip_pkg="web3" ;;
+    python-eth-utils) pip_pkg="eth-utils" ;;
+  esac
+
+  case "$pkg" in
+    certipy|netexec|hashid|patator|crowbar|brutespray|adidnsdump|ldeep|sprayhound)
+      if command -v python3 >/dev/null 2>&1; then
+        if python3 -m pip install --user --break-system-packages "$pip_pkg" 2>&1; then
+          ok=true
+        fi
+      fi
+      ;;
+    python-web3|python-eth-utils)
+      if command -v python3 >/dev/null 2>&1; then
+        python3 -m pip install --user --break-system-packages "$pip_pkg" 2>&1 && ok=true
+      fi
+      ;;
+    kerbrute)
+      if command -v go >/dev/null 2>&1; then
+        go install github.com/ropnop/kerbrute@latest 2>&1 && ok=true
+      fi
+      ;;
+    ligolo-ng)
+      if command -v go >/dev/null 2>&1; then
+        go install github.com/nicocha30/ligolo-ng/cmd/proxy@latest 2>&1 && ok=true
+        go install github.com/nicocha30/ligolo-ng/cmd/agent@latest 2>&1 || true
+      fi
+      ;;
+    go-windapsearch)
+      if command -v go >/dev/null 2>&1; then
+        go install github.com/ropnop/go-windapsearch@latest 2>&1 && ok=true
+      fi
+      ;;
+    sliver)
+      if command -v go >/dev/null 2>&1; then
+        go install github.com/BishopFox/sliver/client@latest 2>&1 && ok=true
+      fi
+      ;;
+    rustscan|feroxbuster)
+      if command -v cargo >/dev/null 2>&1; then
+        cargo install "$pkg" 2>&1 && ok=true
+      fi
+      ;;
+    *)
+      ;;
+  esac
+
+  $ok && echo "Language fallback installed: $pkg" && return 0
+  return 1
+}
+
 pkg_install() {
   local -a pkgs=("$@")
-  local -a repo_pkgs=() aur_pkgs=()
+  local refreshed=false
+  local -a missing_pkgs=()
+  local -a unresolved_pkgs=()
 
-  for pkg in "${pkgs[@]}"; do
-    if pacman -Si "$pkg" &>/dev/null; then
-      repo_pkgs+=("$pkg")
-    else
-      aur_pkgs+=("$pkg")
-    fi
-  done
+  # Fast path: one transaction first, then only fallback for failures.
+  mapfile -t missing_pkgs < <(
+    for pkg in "${pkgs[@]}"; do
+      pacman -Qi "$pkg" &>/dev/null || echo "$pkg"
+    done
+  )
 
-  if [[ ${#repo_pkgs[@]} -gt 0 ]]; then
-    sudo pacman -S --needed --noconfirm "${repo_pkgs[@]}" 2>&1 || {
-      for pkg in "${repo_pkgs[@]}"; do
-        sudo pacman -S --needed --noconfirm "$pkg" 2>&1 || true
-      done
-    }
+  if [[ ${#missing_pkgs[@]} -eq 0 ]]; then
+    echo "All selected packages are already installed."
+    return 0
   fi
 
-  if [[ ${#aur_pkgs[@]} -gt 0 && -n "$AUR_HELPER" ]]; then
-    for pkg in "${aur_pkgs[@]}"; do
-      "$AUR_HELPER" -S --needed --noconfirm "$pkg" 2>&1 || true
-    done
+  if sudo pacman -S --needed --noconfirm "${missing_pkgs[@]}" 2>&1; then
+    echo "Bulk repo installation completed."
+    return 0
+  fi
+
+  if ! $refreshed; then
+    sudo pacman -Sy --noconfirm 2>&1 || true
+    refreshed=true
+    sudo pacman -S --needed --noconfirm "${missing_pkgs[@]}" 2>&1 || true
+  fi
+
+  for pkg in "${missing_pkgs[@]}"; do
+    if pacman -Qi "$pkg" &>/dev/null; then
+      echo "Already installed: $pkg"
+      continue
+    fi
+
+    # Always try official/third-party repos first (Arch/BlackArch/Chaotic).
+    if sudo pacman -S --needed --noconfirm "$pkg" 2>&1; then
+      echo "Repo installed: $pkg"
+      continue
+    fi
+
+    # One-time DB refresh, then retry repo install once.
+    if ! $refreshed; then
+      sudo pacman -Sy --noconfirm 2>&1 || true
+      refreshed=true
+      if sudo pacman -S --needed --noconfirm "$pkg" 2>&1; then
+        echo "Repo installed after refresh: $pkg"
+        continue
+      fi
+    fi
+
+    # Fallback to AUR only if repo install failed.
+    if [[ -n "$AUR_HELPER" ]]; then
+      case "$AUR_HELPER" in
+        paru)
+          "$AUR_HELPER" -S --needed --noconfirm --skipreview --removemake "$pkg" 2>&1 || \
+            echo "AUR skip: $pkg"
+          ;;
+        yay)
+          "$AUR_HELPER" -S --needed --noconfirm --answerclean None --answerdiff None --removemake "$pkg" 2>&1 || \
+            echo "AUR skip: $pkg"
+          ;;
+        pikaur)
+          "$AUR_HELPER" -S --needed --noconfirm "$pkg" 2>&1 || \
+            echo "AUR skip: $pkg"
+          ;;
+      esac
+    else
+      echo "Skipped (not in repos and no AUR helper): $pkg"
+    fi
+
+    # Last fallback: language package managers for common Go/Python tools.
+    if lang_fallback_install "$pkg"; then
+      continue
+    fi
+
+    unresolved_pkgs+=("$pkg")
+  done
+
+  if [[ ${#unresolved_pkgs[@]} -gt 0 ]]; then
+    echo ""
+    echo "Unresolved packages (${#unresolved_pkgs[@]}):"
+    printf '  - %s\n' "${unresolved_pkgs[@]}"
   fi
 }
 

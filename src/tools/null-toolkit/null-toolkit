@@ -22,6 +22,61 @@ detect_aur_helper() {
   echo ""
 }
 
+lang_fallback_install() {
+  local pkg="$1"
+  local pip_pkg="$pkg"
+  local ok=false
+
+  case "$pkg" in
+    python-web3) pip_pkg="web3" ;;
+    python-eth-utils) pip_pkg="eth-utils" ;;
+  esac
+
+  case "$pkg" in
+    certipy|netexec|hashid|patator|crowbar|brutespray|adidnsdump|ldeep|sprayhound)
+      if command -v python3 >/dev/null 2>&1; then
+        python3 -m pip install --break-system-packages "$pip_pkg" 2>&1 && ok=true
+      fi
+      ;;
+    python-web3|python-eth-utils)
+      if command -v python3 >/dev/null 2>&1; then
+        python3 -m pip install --break-system-packages "$pip_pkg" 2>&1 && ok=true
+      fi
+      ;;
+    kerbrute)
+      if command -v go >/dev/null 2>&1; then
+        GOBIN=/usr/local/bin go install github.com/ropnop/kerbrute@latest 2>&1 && ok=true
+      fi
+      ;;
+    ligolo-ng)
+      if command -v go >/dev/null 2>&1; then
+        GOBIN=/usr/local/bin go install github.com/nicocha30/ligolo-ng/cmd/proxy@latest 2>&1 && ok=true
+        GOBIN=/usr/local/bin go install github.com/nicocha30/ligolo-ng/cmd/agent@latest 2>&1 || true
+      fi
+      ;;
+    go-windapsearch)
+      if command -v go >/dev/null 2>&1; then
+        GOBIN=/usr/local/bin go install github.com/ropnop/go-windapsearch@latest 2>&1 && ok=true
+      fi
+      ;;
+    sliver)
+      if command -v go >/dev/null 2>&1; then
+        GOBIN=/usr/local/bin go install github.com/BishopFox/sliver/client@latest 2>&1 && ok=true
+      fi
+      ;;
+    rustscan|feroxbuster)
+      if command -v cargo >/dev/null 2>&1; then
+        cargo install --root /usr/local "$pkg" 2>&1 && ok=true
+      fi
+      ;;
+    *)
+      ;;
+  esac
+
+  $ok && echo -e "${GREEN}Language fallback installed:${NC} $pkg" && return 0
+  return 1
+}
+
 get_available_roles() {
   local roles=()
   for yml in "$ROLES_DIR"/*.yml; do
@@ -100,42 +155,87 @@ get_role_name() {
 
 install_packages() {
   local -a pkg_array=("$@")
-  local -a repo_pkgs=()
-  local -a aur_pkgs=()
   local aur_helper
   aur_helper="$(detect_aur_helper)"
+  local refreshed=false
+  local -a missing_pkgs=()
+  local -a unresolved_pkgs=()
 
-  for pkg in "${pkg_array[@]}"; do
-    if pacman -Si "$pkg" &>/dev/null; then
-      repo_pkgs+=("$pkg")
-    else
-      aur_pkgs+=("$pkg")
-    fi
-  done
+  mapfile -t missing_pkgs < <(
+    for pkg in "${pkg_array[@]}"; do
+      pacman -Qi "$pkg" &>/dev/null || echo "$pkg"
+    done
+  )
 
-  if [[ ${#repo_pkgs[@]} -gt 0 ]]; then
-    echo -e "${CYAN}Installing ${#repo_pkgs[@]} packages from repos...${NC}"
-    pacman -S --needed --noconfirm "${repo_pkgs[@]}" || {
-      for pkg in "${repo_pkgs[@]}"; do
-        pacman -S --needed --noconfirm "$pkg" 2>/dev/null || \
-          echo -e "${YELLOW}  Skipped: ${pkg}${NC}"
-      done
-    }
+  if [[ ${#missing_pkgs[@]} -eq 0 ]]; then
+    echo -e "${GREEN}All selected packages are already installed.${NC}"
+    return 0
   fi
 
-  if [[ ${#aur_pkgs[@]} -gt 0 ]]; then
-    if [[ -n "$aur_helper" ]]; then
-      echo -e "${CYAN}Installing ${#aur_pkgs[@]} packages from AUR via ${aur_helper}...${NC}"
-      local real_user="${SUDO_USER:-$USER}"
-      for pkg in "${aur_pkgs[@]}"; do
-        su - "$real_user" -c "$aur_helper -S --needed --noconfirm $pkg" 2>/dev/null || \
-          echo -e "${YELLOW}  AUR skip: ${pkg}${NC}"
-      done
-    else
-      echo -e "${YELLOW}${#aur_pkgs[@]} AUR packages need an AUR helper (paru/yay):${NC}"
-      printf '  %s\n' "${aur_pkgs[@]}"
-      echo -e "${YELLOW}Install with: paru -S ${aur_pkgs[*]}${NC}"
+  if pacman -S --needed --noconfirm "${missing_pkgs[@]}" 2>&1; then
+    echo -e "${GREEN}Bulk repo install complete.${NC}"
+    return 0
+  fi
+
+  if ! $refreshed; then
+    pacman -Sy --noconfirm 2>&1 || true
+    refreshed=true
+    pacman -S --needed --noconfirm "${missing_pkgs[@]}" 2>&1 || true
+  fi
+
+  for pkg in "${missing_pkgs[@]}"; do
+    if pacman -Qi "$pkg" &>/dev/null; then
+      echo -e "${GREEN}Already installed:${NC} $pkg"
+      continue
     fi
+
+    # First try Arch/BlackArch/Chaotic repos.
+    if pacman -S --needed --noconfirm "$pkg" 2>&1; then
+      echo -e "${GREEN}Repo installed:${NC} $pkg"
+      continue
+    fi
+
+    # Refresh DB once, retry.
+    if ! $refreshed; then
+      pacman -Sy --noconfirm 2>&1 || true
+      refreshed=true
+      if pacman -S --needed --noconfirm "$pkg" 2>&1; then
+        echo -e "${GREEN}Repo installed after refresh:${NC} $pkg"
+        continue
+      fi
+    fi
+
+    # Repo failed -> AUR fallback.
+    if [[ -n "$aur_helper" ]]; then
+      local real_user="${SUDO_USER:-$USER}"
+      case "$aur_helper" in
+        paru)
+          su - "$real_user" -c "$aur_helper -S --needed --noconfirm --skipreview --removemake $pkg" 2>/dev/null || \
+            echo -e "${YELLOW}AUR skip:${NC} $pkg"
+          ;;
+        yay)
+          su - "$real_user" -c "$aur_helper -S --needed --noconfirm --answerclean None --answerdiff None --removemake $pkg" 2>/dev/null || \
+            echo -e "${YELLOW}AUR skip:${NC} $pkg"
+          ;;
+        pikaur)
+          su - "$real_user" -c "$aur_helper -S --needed --noconfirm $pkg" 2>/dev/null || \
+            echo -e "${YELLOW}AUR skip:${NC} $pkg"
+          ;;
+      esac
+    else
+      echo -e "${YELLOW}Skipped (no repo/AUR helper):${NC} $pkg"
+    fi
+
+    if lang_fallback_install "$pkg"; then
+      continue
+    fi
+
+    unresolved_pkgs+=("$pkg")
+  done
+
+  if [[ ${#unresolved_pkgs[@]} -gt 0 ]]; then
+    echo -e "${YELLOW}Unresolved packages (${#unresolved_pkgs[@]}):${NC}"
+    printf '  - %s\n' "${unresolved_pkgs[@]}"
   fi
 }
 
