@@ -9,3 +9,8 @@ Theme=Papirus-Dark
 [KDE]
 LookAndFeelPackage=org.kde.breezedark.desktop
 SingleClick=false
+AnimationDurationFactor=0
+
+[Toolbar style]
+ToolButtonStyle=TextBesideIcon
+ToolButtonStyleOtherToolbars=TextBesideIcon

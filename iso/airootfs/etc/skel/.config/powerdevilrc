@@ -1,0 +1,10 @@
+[AC][Display]
+DimDisplayIdleTimeoutSec=600
+TurnOffDisplayIdleTimeoutSec=900
+
+[AC][SuspendAndShutdown]
+AutoSuspendAction=0
+PowerButtonAction=16
+
+[BatteryManagement]
+BatteryCriticalAction=1

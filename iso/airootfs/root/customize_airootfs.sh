@@ -72,8 +72,31 @@ systemctl mask systemd-network-generator.service
 systemctl mask systemd-networkd-varlink.socket
 systemctl mask systemd-networkd-varlink-metrics.socket
 systemctl mask systemd-networkd-resolve-hook.socket
+
+systemctl mask plymouth-start.service
+systemctl mask plymouth-read-write.service
+systemctl mask plymouth-quit.service
+systemctl mask plymouth-quit-wait.service
+systemctl mask ModemManager.service
+systemctl mask lvm2-monitor.service
+systemctl mask lvm2-lvmpolld.socket
+systemctl disable bluetooth.service 2>/dev/null || true
+
 ldconfig
 touch /etc/.updated /var/.updated
+
+mkdir -p /etc/sysctl.d
+cat > /etc/sysctl.d/99-nulllinux-perf.conf <<'SYSCTL'
+vm.swappiness=10
+vm.vfs_cache_pressure=50
+vm.dirty_ratio=10
+vm.dirty_background_ratio=5
+SYSCTL
+
+mkdir -p /etc/tmpfiles.d
+cat > /etc/tmpfiles.d/tmp.conf <<'TMPFILES'
+q /tmp 1777 root root 7d
+TMPFILES
 
 if [[ -d /usr/share/nulllinux/desktop-entries ]]; then
   for f in /usr/share/nulllinux/desktop-entries/*.desktop; do

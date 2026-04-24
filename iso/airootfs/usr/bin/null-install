@@ -106,7 +106,7 @@ install_base() {
     xorg-server dolphin konsole kate plasma-desktop plasma-nm plasma-pa \
     plasma-workspace plasma-x11-session plasma-systemmonitor polkit-kde-agent qt6-wayland sddm \
     xdg-desktop-portal-kde xdg-user-dirs xdg-utils breeze breeze-gtk \
-    kde-gtk-config kwallet-pam kscreen powerdevil plymouth \
+    kde-gtk-config kwallet-pam kscreen powerdevil \
     mesa vulkan-icd-loader ttf-dejavu ttf-liberation noto-fonts \
     adwaita-icon-theme papirus-icon-theme archlinux-keyring \
     blackarch-keyring blackarch-mirrorlist chaotic-keyring chaotic-mirrorlist \
@@ -172,7 +172,7 @@ linux /vmlinuz-linux
 initrd /amd-ucode.img
 initrd /intel-ucode.img
 initrd /initramfs-linux.img
-options root=UUID=${ROOT_UUID} rw quiet splash plymouth.enable=1
+options root=UUID=${ROOT_UUID} rw quiet loglevel=3 systemd.show_status=auto
 ENTRY
 
 xdg-user-dirs-update
@@ -222,9 +222,6 @@ POSTEOF
     cp -a /usr/share/wallpapers/NullLinux "$TARGET/usr/share/wallpapers/" 2>/dev/null || true
   fi
 
-  if [[ -d /usr/share/plymouth/themes/nulllinux ]]; then
-    cp -a /usr/share/plymouth/themes/nulllinux "$TARGET/usr/share/plymouth/themes/" 2>/dev/null || true
-  fi
 
   if [[ -f /usr/lib/firefox/distribution/policies.json ]]; then
     install -Dm644 /usr/lib/firefox/distribution/policies.json \
