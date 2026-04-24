@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# UEFI (OVMF) — recommended for Null Linux. `run-qemu.sh` is a wrapper to this.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

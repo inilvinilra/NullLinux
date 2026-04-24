@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
+# Null Linux — launch ISO in QEMU with UEFI (OVMF). This is the default.
+# For legacy SeaBIOS only, use: ./run-qemu-bios.sh
+
 set -euo pipefail
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=qemu-common.sh
-source "$SCRIPT_DIR/qemu-common.sh" "$@"
-
-exec qemu-system-x86_64 "${COMMON_QEMU_ARGS[@]}"
+exec "$SCRIPT_DIR/run-qemu-uefi.sh" "$@"
