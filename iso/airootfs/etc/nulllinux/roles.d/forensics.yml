@@ -7,19 +7,30 @@ packages:
   - sleuthkit
   - scalpel
   - ddrescue
-  - cyberchef
+  - python-chepy
   - perl-image-exiftool
   - steghide
   - stegseek
-  - stegosuite
+  - openstego
   - osquery
   - binwalk
   - foremost
   - chkrootkit
   - rkhunter
   - yara
-  - strelka
   - bulk-extractor
   - testdisk
   - hashdeep
-  - plaso
+  - python-plaso
+  - pngcheck
+  - outguess
+  - dc3dd
+  - libewf
+  - mac-robber
+  - missidentify
+  - unhide
+  - recoverjpeg
+  - ext4magic
+  - galleta
+  - pasco
+  - rifiuti2

@@ -1,19 +1,57 @@
 pkgname=nulllinux-osint
-pkgver=0.2.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Null Linux - Open source intelligence gathering, reconnaissance, and asset discovery"
+pkgdesc="Open source intelligence gathering, reconnaissance, and asset discovery"
 arch=('any')
+url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  amass subfinder httpx naabu python-shodan sherlock
-  phoneinfoga spiderfoot sn0int metagoofil sublist3r
-  whatweb wafw00f findomain nuclei nuclei-templates
-  recon-ng maltego theharvester dnsenum dnsrecon
-  dmitry osrframework urlcrazy rustscan masscan
-  nmap zmap fierce photon holehe socialscan
-  perl-image-exiftool
+  'amass'
+  'subfinder'
+  'httpx'
+  'naabu'
+  'python-shodan'
+  'sherlock'
+  'phoneinfoga'
+  'spiderfoot'
+  'sn0int'
+  'metagoofil'
+  'sublist3r'
+  'whatweb'
+  'wafw00f'
+  'findomain'
+  'nuclei'
+  'nuclei-templates'
+  'recon-ng'
+  'maltego'
+  'theharvester'
+  'dnsenum'
+  'dnsrecon'
+  'dmitry'
+  'urlcrazy'
+  'rustscan'
+  'masscan'
+  'nmap'
+  'zmap'
+  'fierce'
+  'photon'
+  'holehe'
+  'socialscan'
+  'perl-image-exiftool'
+  'whois'
+  'eyewitness'
+  'assetfinder'
+  'gau'
+  'waybackurls'
+  'unfurl'
+  'chaos-client'
+  'mapcidr'
+  'katana-pd'
+  'tlsx'
+  'asnmap'
 )
 
 package() {
-  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/osint"
+  install -dm755 "${pkgdir}/etc/nulllinux/roles.d"
+  install -Dm644 /dev/null "${pkgdir}/etc/nulllinux/roles.d/osint.installed"
 }

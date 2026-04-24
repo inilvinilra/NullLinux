@@ -11,35 +11,74 @@ packages:
   - qemu-desktop
   - dnsmasq
   - qemu-full
-  - ayugram-desktop-bin
   - gajim
   - element-desktop
   - signal-desktop
-  - session-desktop-bin
   - discord
-  - qtox
-  - zapzap
   - thunderbird
   - flameshot
-  - rustdesk
   - remmina
   - freerdp
   - gufw
   - terminator
   - btop
-  - ventoy
-  - ungoogled-chromium
+  - ventoy-bin
+  - ungoogled-chromium-bin
   - putty
   - scrcpy
   - filezilla
   - mpv
   - obs-studio
   - qbittorrent
-  - logseq-desktop-bin
   - freetube
-  - 7-zip
+  - 7zip
   - keepassxc
-  - megasync
   - nextcloud-client
   - syncthing
   - bleachbit
+  - kitty
+  - alacritty
+  - tmux
+  - screen
+  - htop
+  - neofetch
+  - fastfetch
+  - ranger
+  - mc
+  - tree
+  - lsof
+  - stow
+  - rsync
+  - rclone
+  - yt-dlp
+  - aria2
+  - wget
+  - curl
+  - jq
+  - ripgrep
+  - fd
+  - bat
+  - fzf
+  - zoxide
+  - eza
+  - dust
+  - duf
+  - procs
+  - gping
+  - bandwhich
+  - grex
+  - hexyl
+  - tokei
+  - hyperfine
+  - xclip
+  - wl-clipboard
+  - imagemagick
+  - ffmpeg
+  - libreoffice-still
+  - okular
+  - gwenview
+  - spectacle
+  - ark
+  - unrar
+  - zip
+  - unzip

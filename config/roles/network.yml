@@ -22,7 +22,22 @@ packages:
   - hping
   - netdiscover
   - iperf3
-  - dnsutils
+  - bind
   - whois
   - ngrep
   - p0f
+  - tcpreplay
+  - yersinia
+  - arping-th
+  - fping
+  - lft
+  - darkstat
+  - iftop
+  - nethogs
+  - vnstat
+  - nload
+  - termshark
+  - ssldump
+  - sslscan
+  - sslstrip
+  - responder

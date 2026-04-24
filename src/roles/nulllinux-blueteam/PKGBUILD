@@ -1,16 +1,41 @@
 pkgname=nulllinux-blueteam
-pkgver=0.2.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Null Linux - Defensive security, monitoring, IDS/IPS, and incident response"
+pkgdesc="Defensive security, monitoring, IDS/IPS, and incident response"
 arch=('any')
+url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  wireshark-qt suricata zeek yara volatility3 clamav
-  lynis rkhunter chkrootkit aide ossec-hids velociraptor
-  wazuh-agent fail2ban snort syslog-ng logwatch
-  tripwire osquery
+  'wireshark-qt'
+  'suricata'
+  'zeek'
+  'yara'
+  'volatility3'
+  'clamav'
+  'lynis'
+  'rkhunter'
+  'chkrootkit'
+  'tiger'
+  'fail2ban'
+  'snort'
+  'syslog-ng'
+  'logwatch'
+  'osquery'
+  'opensnitch'
+  'nftables'
+  'ufw'
+  'etherape'
+  'unhide'
+  'firejail'
+  'apparmor'
+  'audit'
+  'inotify-tools'
+  'tcpdump'
+  'arpwatch'
+  'logrotate'
 )
 
 package() {
-  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/blueteam"
+  install -dm755 "${pkgdir}/etc/nulllinux/roles.d"
+  install -Dm644 /dev/null "${pkgdir}/etc/nulllinux/roles.d/blueteam.installed"
 }

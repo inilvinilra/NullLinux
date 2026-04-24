@@ -1,15 +1,95 @@
 pkgname=nulllinux-essentials
-pkgver=0.2.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Null Linux - Essential Tools & Applications"
+pkgdesc="Daily use applications, virtualization, communication, and utilities"
 arch=('any')
+url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  flatpak docker docker-compose podman podman-compose
-  distrobox virt-manager qemu-desktop dnsmasq qemu-full
-  element-desktop discord thunderbird flameshot
-  remmina freerdp gufw terminator btop
-  ungoogled-chromium putty scrcpy filezilla
-  mpv obs-studio qbittorrent 7-zip keepassxc
-  syncthing bleachbit
+  'flatpak'
+  'docker'
+  'docker-compose'
+  'podman'
+  'podman-compose'
+  'distrobox'
+  'virt-manager'
+  'qemu-desktop'
+  'dnsmasq'
+  'qemu-full'
+  'gajim'
+  'element-desktop'
+  'signal-desktop'
+  'discord'
+  'thunderbird'
+  'flameshot'
+  'remmina'
+  'freerdp'
+  'gufw'
+  'terminator'
+  'btop'
+  'ventoy-bin'
+  'ungoogled-chromium-bin'
+  'putty'
+  'scrcpy'
+  'filezilla'
+  'mpv'
+  'obs-studio'
+  'qbittorrent'
+  'freetube'
+  '7zip'
+  'keepassxc'
+  'nextcloud-client'
+  'syncthing'
+  'bleachbit'
+  'kitty'
+  'alacritty'
+  'tmux'
+  'screen'
+  'htop'
+  'neofetch'
+  'fastfetch'
+  'ranger'
+  'mc'
+  'tree'
+  'lsof'
+  'stow'
+  'rsync'
+  'rclone'
+  'yt-dlp'
+  'aria2'
+  'wget'
+  'curl'
+  'jq'
+  'ripgrep'
+  'fd'
+  'bat'
+  'fzf'
+  'zoxide'
+  'eza'
+  'dust'
+  'duf'
+  'procs'
+  'gping'
+  'bandwhich'
+  'grex'
+  'hexyl'
+  'tokei'
+  'hyperfine'
+  'xclip'
+  'wl-clipboard'
+  'imagemagick'
+  'ffmpeg'
+  'libreoffice-still'
+  'okular'
+  'gwenview'
+  'spectacle'
+  'ark'
+  'unrar'
+  'zip'
+  'unzip'
 )
+
+package() {
+  install -dm755 "${pkgdir}/etc/nulllinux/roles.d"
+  install -Dm644 /dev/null "${pkgdir}/etc/nulllinux/roles.d/essentials.installed"
+}

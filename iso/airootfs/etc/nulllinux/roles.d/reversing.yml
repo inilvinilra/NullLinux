@@ -3,11 +3,11 @@ description: Binary analysis, debugging, decompilation, and malware research
 packages:
   - ghidra
   - radare2
-  - edb-debugger
+  - edb
   - ltrace
   - strace
   - gdb
-  - apktool
+  - android-apktool
   - jadx
   - dex2jar
   - cutter
@@ -16,3 +16,18 @@ packages:
   - checksec
   - pwndbg
   - one_gadget
+  - r2ghidra
+  - python-capstone
+  - python-keystone
+  - python-unicorn
+  - yara
+  - upx
+  - nasm
+  - flasm
+  - jd-gui
+  - bytecode-viewer
+  - cfr
+  - procyon-decompiler
+  - detect-it-easy
+  - rizin
+  - iaito

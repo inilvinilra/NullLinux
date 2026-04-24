@@ -10,13 +10,21 @@ packages:
   - lynis
   - rkhunter
   - chkrootkit
-  - aide
-  - ossec-hids
-  - velociraptor
-  - wazuh-agent
+  - tiger
   - fail2ban
   - snort
   - syslog-ng
   - logwatch
-  - tripwire
   - osquery
+  - opensnitch
+  - nftables
+  - ufw
+  - etherape
+  - unhide
+  - firejail
+  - apparmor
+  - audit
+  - inotify-tools
+  - tcpdump
+  - arpwatch
+  - logrotate

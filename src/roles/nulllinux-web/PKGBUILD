@@ -1,17 +1,52 @@
 pkgname=nulllinux-web
-pkgver=0.2.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Null Linux - Web application penetration testing and vulnerability scanning"
+pkgdesc="Web application penetration testing and vulnerability scanning"
 arch=('any')
+url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  ffuf feroxbuster dalfox sqlmap burpsuite wpscan
-  zaproxy dirb gobuster dirbuster beef nikto
-  w3af wapiti arachni skipfish commix xsstrike
-  xsser wfuzz nuclei httpx whatweb arjun
-  gospider hakrawler
+  'ffuf'
+  'feroxbuster'
+  'dalfox'
+  'sqlmap'
+  'burpsuite'
+  'wpscan'
+  'zaproxy'
+  'dirb'
+  'gobuster'
+  'dirbuster'
+  'beef'
+  'nikto'
+  'w3af'
+  'wapiti'
+  'arachni'
+  'skipfish'
+  'commix'
+  'xsstrike'
+  'xsser'
+  'wfuzz'
+  'nuclei'
+  'httpx'
+  'whatweb'
+  'arjun'
+  'gospider'
+  'hakrawler'
+  'httprobe'
+  'meg'
+  'subjack'
+  'crlfuzz'
+  'gf'
+  'qsreplace'
+  'waybackurls'
+  'gau'
+  'linkfinder'
+  'secretfinder'
+  'paramspider'
+  'katana-pd'
 )
 
 package() {
-  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/web"
+  install -dm755 "${pkgdir}/etc/nulllinux/roles.d"
+  install -Dm644 /dev/null "${pkgdir}/etc/nulllinux/roles.d/web.installed"
 }

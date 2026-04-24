@@ -23,7 +23,6 @@ packages:
   - dnsenum
   - dnsrecon
   - dmitry
-  - osrframework
   - urlcrazy
   - rustscan
   - masscan
@@ -34,3 +33,14 @@ packages:
   - holehe
   - socialscan
   - perl-image-exiftool
+  - whois
+  - eyewitness
+  - assetfinder
+  - gau
+  - waybackurls
+  - unfurl
+  - chaos-client
+  - mapcidr
+  - katana-pd
+  - tlsx
+  - asnmap

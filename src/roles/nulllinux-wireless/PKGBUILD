@@ -1,17 +1,42 @@
 pkgname=nulllinux-wireless
-pkgver=0.2.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Null Linux - Wireless network auditing, WiFi attacks, and RF tools"
+pkgdesc="Wireless network auditing, WiFi attacks, and RF tools"
 arch=('any')
+url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  aircrack-ng kismet wifite hcxdumptool hcxtools
-  reaver pixiewps hostapd-wpe freeradius fluxion
-  bully fern-wifi-cracker cowpatty mdk4 asleap
-  eapmd5pass wifi-honey gnuradio gqrx hackrf
-  wifiphisher
+  'aircrack-ng'
+  'kismet'
+  'wifite'
+  'hcxdumptool'
+  'hcxtools'
+  'reaver'
+  'pixiewps'
+  'hostapd-wpe'
+  'freeradius'
+  'fluxion'
+  'bully'
+  'fern-wifi-cracker'
+  'cowpatty'
+  'mdk4'
+  'asleap'
+  'eapmd5pass'
+  'wifi-honey'
+  'gnuradio'
+  'gqrx'
+  'hackrf'
+  'wifiphisher'
+  'iw'
+  'wavemon'
+  'spectools'
+  'linssid'
+  'sparrow-wifi'
+  'macchanger'
+  'wpa_supplicant'
 )
 
 package() {
-  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/wireless"
+  install -dm755 "${pkgdir}/etc/nulllinux/roles.d"
+  install -Dm644 /dev/null "${pkgdir}/etc/nulllinux/roles.d/wireless.installed"
 }

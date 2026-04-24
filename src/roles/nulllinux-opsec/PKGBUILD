@@ -1,18 +1,52 @@
 pkgname=nulllinux-opsec
-pkgver=0.2.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Null Linux - Operational security, privacy, anonymity, and encryption tools"
+pkgdesc="Operational security, privacy, anonymity, and encryption tools"
 arch=('any')
+url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  tor torsocks torbrowser-launcher proxychains-ng macchanger
-  bleachbit firejail apparmor mat2 onionshare i2pd
-  veracrypt cryptomator keepassxc bitwarden kleopatra
-  age gnupg exifcleaner mullvad-browser librewolf
-  proton-vpn-gtk-app protonmail-bridge wireguard-tools openvpn
-  simplex-chat-bin signal-desktop session-desktop-bin briar-desktop
+  'tor'
+  'torsocks'
+  'torbrowser-launcher'
+  'proxychains-ng'
+  'macchanger'
+  'bleachbit'
+  'firejail'
+  'apparmor'
+  'mat2'
+  'onionshare'
+  'i2pd'
+  'veracrypt'
+  'cryptomator'
+  'keepassxc'
+  'bitwarden'
+  'kleopatra'
+  'age'
+  'gnupg'
+  'mullvad-browser-bin'
+  'librewolf-bin'
+  'proton-vpn-gtk-app'
+  'protonmail-bridge'
+  'wireguard-tools'
+  'openvpn'
+  'signal-desktop'
+  'bubblewrap'
+  'zulucrypt'
+  'paperkey'
+  'pass'
+  'gopass'
+  'rage'
+  'minisign'
+  'signify'
+  'sbctl'
+  'lynis'
+  'opensnitch'
+  'nftables'
+  'ufw'
 )
 
 package() {
-  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/opsec"
+  install -dm755 "${pkgdir}/etc/nulllinux/roles.d"
+  install -Dm644 /dev/null "${pkgdir}/etc/nulllinux/roles.d/opsec.installed"
 }

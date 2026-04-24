@@ -19,14 +19,23 @@ packages:
   - kleopatra
   - age
   - gnupg
-  - exifcleaner
-  - mullvad-browser
-  - librewolf
+  - mullvad-browser-bin
+  - librewolf-bin
   - proton-vpn-gtk-app
   - protonmail-bridge
   - wireguard-tools
   - openvpn
-  - simplex-chat-bin
   - signal-desktop
-  - session-desktop-bin
-  - briar-desktop
+  - bubblewrap
+  - zulucrypt
+  - paperkey
+  - pass
+  - gopass
+  - rage
+  - minisign
+  - signify
+  - sbctl
+  - lynis
+  - opensnitch
+  - nftables
+  - ufw

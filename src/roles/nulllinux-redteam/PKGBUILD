@@ -1,18 +1,58 @@
 pkgname=nulllinux-redteam
-pkgver=0.2.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Null Linux - Full offensive security and penetration testing toolkit"
+pkgdesc="Full offensive security and penetration testing toolkit"
 arch=('any')
+url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  nmap metasploit sqlmap john hashcat seclists
-  raft-wordlists hydra medusa ncrack crunch gobuster
-  responder impacket bloodhound mimikatz enum4linux
-  evil-winrm ligolo-ng netexec certipy-ad wordlists
-  cewl hashid ophcrack fcrackzip pdfcrack rsmangler
-  kerbrute rubeus sliver havoc
+  'nmap'
+  'metasploit'
+  'sqlmap'
+  'john'
+  'hashcat'
+  'seclists'
+  'hydra'
+  'medusa'
+  'ncrack'
+  'crunch'
+  'gobuster'
+  'responder'
+  'impacket'
+  'bloodhound'
+  'mimikatz'
+  'enum4linux'
+  'evil-winrm'
+  'ligolo-ng'
+  'netexec'
+  'certipy'
+  'cewl'
+  'hashid'
+  'ophcrack'
+  'fcrackzip'
+  'pdfcrack'
+  'rsmangler'
+  'kerbrute'
+  'sliver'
+  'havoc-c2'
+  'wordlistctl'
+  'princeprocessor'
+  'hcxtools'
+  'hcxdumptool'
+  'hash-identifier'
+  'patator'
+  'crowbar'
+  'brutespray'
+  'thc-pptp-bruter'
+  'pth-toolkit'
+  'sprayhound'
+  'adidnsdump'
+  'ldeep'
+  'go-windapsearch'
+  'bloodhound-python'
 )
 
 package() {
-  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/redteam"
+  install -dm755 "${pkgdir}/etc/nulllinux/roles.d"
+  install -Dm644 /dev/null "${pkgdir}/etc/nulllinux/roles.d/redteam.installed"
 }

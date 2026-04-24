@@ -1,11 +1,49 @@
 pkgname=nulllinux-devtools
-pkgver=0.2.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Null Linux - Development & Build Environments"
+pkgdesc="Programming languages, compilers, and build systems"
 arch=('any')
+url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  base-devel git python python-pip go rustup
-  gcc clang cmake make nodejs npm jdk-openjdk
-  ruby vscodium
+  'base-devel'
+  'git'
+  'python'
+  'python-pip'
+  'go'
+  'rustup'
+  'gcc'
+  'clang'
+  'cmake'
+  'make'
+  'nodejs'
+  'npm'
+  'jdk-openjdk'
+  'ruby'
+  'vscodium'
+  'python-virtualenv'
+  'python-pipx'
+  'meson'
+  'ninja'
+  'gdb'
+  'valgrind'
+  'perf'
+  'strace'
+  'ltrace'
+  'swig'
+  'pkgconf'
+  'autoconf'
+  'automake'
+  'nasm'
+  'perl'
+  'lua'
+  'php'
+  'dotnet-sdk'
+  'zig'
+  'nim'
 )
+
+package() {
+  install -dm755 "${pkgdir}/etc/nulllinux/roles.d"
+  install -Dm644 /dev/null "${pkgdir}/etc/nulllinux/roles.d/devtools.installed"
+}

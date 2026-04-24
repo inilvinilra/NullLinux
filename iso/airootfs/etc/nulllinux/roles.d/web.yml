@@ -27,3 +27,15 @@ packages:
   - arjun
   - gospider
   - hakrawler
+  - httprobe
+  - meg
+  - subjack
+  - crlfuzz
+  - gf
+  - qsreplace
+  - waybackurls
+  - gau
+  - linkfinder
+  - secretfinder
+  - paramspider
+  - katana-pd

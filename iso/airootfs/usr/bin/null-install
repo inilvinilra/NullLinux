@@ -98,19 +98,19 @@ get_user_config() {
 select_roles() {
   SELECTED_ROLES="$(dialog --backtitle "$BACKTITLE" --title "Security Roles & Tools" \
     --checklist "Select roles to install (Space to toggle, Enter to confirm):" 24 70 13 \
-    "redteam"       "Red Team — offensive pentesting (32 tools)"       off \
-    "blueteam"      "Blue Team — defense & IR (19 tools)"              off \
-    "osint"         "OSINT & Recon (33 tools)"                         off \
-    "opsec"         "OPSEC & Privacy (29 tools)"                       off \
-    "network"       "Network Analysis & Sniffing (25 tools)"           off \
-    "forensics"     "Forensics, DFIR & Stego (22 tools)"              off \
-    "web"           "Web App Security (26 tools)"                      off \
-    "wireless"      "Wireless & RF Attacks (21 tools)"                 off \
-    "exploitation"  "Exploitation & Post-Exploitation (23 tools)"      off \
-    "reversing"     "Reverse Engineering & Malware (15 tools)"         off \
-    "devtools"      "Development Environments (15 tools)"              off \
-    "essentials"    "Essential Apps & Utilities (41 tools)"             off \
-    "crypto"        "Crypto & Finance Wallets (5 tools)"               off \
+    "redteam"       "Red Team — offensive pentesting (44 tools)"       off \
+    "blueteam"      "Blue Team — defense & IR (27 tools)"              off \
+    "osint"         "OSINT & Recon (43 tools)"                         off \
+    "opsec"         "OPSEC & Privacy (38 tools)"                       off \
+    "network"       "Network Analysis & Sniffing (40 tools)"           off \
+    "forensics"     "Forensics, DFIR & Stego (33 tools)"              off \
+    "web"           "Web App Security (38 tools)"                      off \
+    "wireless"      "Wireless & RF Attacks (28 tools)"                 off \
+    "exploitation"  "Exploitation & Post-Exploit (32 tools)"           off \
+    "reversing"     "Reverse Engineering & Malware (30 tools)"         off \
+    "devtools"      "Development Environments (35 tools)"              off \
+    "essentials"    "Essential Apps & Utilities (81 tools)"             off \
+    "crypto"        "Crypto & Finance (4 tools)"                       off \
     3>&1 1>&2 2>&3)" || SELECTED_ROLES=""
 }
 

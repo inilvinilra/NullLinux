@@ -22,3 +22,10 @@ packages:
   - gqrx
   - hackrf
   - wifiphisher
+  - iw
+  - wavemon
+  - spectools
+  - linssid
+  - sparrow-wifi
+  - macchanger
+  - wpa_supplicant

@@ -7,7 +7,6 @@ packages:
   - john
   - hashcat
   - seclists
-  - raft-wordlists
   - hydra
   - medusa
   - ncrack
@@ -21,8 +20,7 @@ packages:
   - evil-winrm
   - ligolo-ng
   - netexec
-  - certipy-ad
-  - wordlists
+  - certipy
   - cewl
   - hashid
   - ophcrack
@@ -30,6 +28,20 @@ packages:
   - pdfcrack
   - rsmangler
   - kerbrute
-  - rubeus
   - sliver
-  - havoc
+  - havoc-c2
+  - wordlistctl
+  - princeprocessor
+  - hcxtools
+  - hcxdumptool
+  - hash-identifier
+  - patator
+  - crowbar
+  - brutespray
+  - thc-pptp-bruter
+  - pth-toolkit
+  - sprayhound
+  - adidnsdump
+  - ldeep
+  - go-windapsearch
+  - bloodhound-python

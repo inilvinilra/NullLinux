@@ -1,17 +1,54 @@
 pkgname=nulllinux-network
-pkgver=0.2.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Null Linux - Network monitoring, packet capture, IDS/IPS, and MITM tools"
+pkgdesc="Network monitoring, packet capture, IDS/IPS, and MITM tools"
 arch=('any')
+url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  zeek suricata wireshark-qt wireshark-cli networkminer
-  ettercap-gtk bettercap mitmproxy dsniff netsniff-ng
-  scapy tcpdump nmap masscan openbsd-netcat arpwatch
-  traceroute mtr hping netdiscover iperf3
-  dnsutils whois ngrep p0f
+  'zeek'
+  'suricata'
+  'wireshark-qt'
+  'wireshark-cli'
+  'networkminer'
+  'ettercap-gtk'
+  'bettercap'
+  'mitmproxy'
+  'dsniff'
+  'netsniff-ng'
+  'scapy'
+  'tcpdump'
+  'nmap'
+  'masscan'
+  'openbsd-netcat'
+  'arpwatch'
+  'traceroute'
+  'mtr'
+  'hping'
+  'netdiscover'
+  'iperf3'
+  'bind'
+  'whois'
+  'ngrep'
+  'p0f'
+  'tcpreplay'
+  'yersinia'
+  'arping-th'
+  'fping'
+  'lft'
+  'darkstat'
+  'iftop'
+  'nethogs'
+  'vnstat'
+  'nload'
+  'termshark'
+  'ssldump'
+  'sslscan'
+  'sslstrip'
+  'responder'
 )
 
 package() {
-  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/network"
+  install -dm755 "${pkgdir}/etc/nulllinux/roles.d"
+  install -Dm644 /dev/null "${pkgdir}/etc/nulllinux/roles.d/network.installed"
 }

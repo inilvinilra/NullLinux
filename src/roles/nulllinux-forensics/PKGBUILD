@@ -1,16 +1,47 @@
 pkgname=nulllinux-forensics
-pkgver=0.2.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Null Linux - Digital forensics, incident response, steganography, and malware triage"
+pkgdesc="Digital forensics, incident response, steganography, and malware triage"
 arch=('any')
+url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  volatility3 autopsy guymager sleuthkit scalpel ddrescue
-  cyberchef perl-image-exiftool steghide stegseek stegosuite
-  osquery binwalk foremost chkrootkit rkhunter
-  yara strelka bulk-extractor testdisk hashdeep plaso
+  'volatility3'
+  'autopsy'
+  'guymager'
+  'sleuthkit'
+  'scalpel'
+  'ddrescue'
+  'python-chepy'
+  'perl-image-exiftool'
+  'steghide'
+  'stegseek'
+  'openstego'
+  'osquery'
+  'binwalk'
+  'foremost'
+  'chkrootkit'
+  'rkhunter'
+  'yara'
+  'bulk-extractor'
+  'testdisk'
+  'hashdeep'
+  'python-plaso'
+  'pngcheck'
+  'outguess'
+  'dc3dd'
+  'libewf'
+  'mac-robber'
+  'missidentify'
+  'unhide'
+  'recoverjpeg'
+  'ext4magic'
+  'galleta'
+  'pasco'
+  'rifiuti2'
 )
 
 package() {
-  install -Dm644 /dev/null "$pkgdir/usr/share/nulllinux/roles/forensics"
+  install -dm755 "${pkgdir}/etc/nulllinux/roles.d"
+  install -Dm644 /dev/null "${pkgdir}/etc/nulllinux/roles.d/forensics.installed"
 }

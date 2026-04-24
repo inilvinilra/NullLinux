@@ -1,11 +1,44 @@
 pkgname=nulllinux-reversing
-pkgver=0.2.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Null Linux - Reverse Engineering & Malware Analysis"
+pkgdesc="Binary analysis, debugging, decompilation, and malware research"
 arch=('any')
+url="https://github.com/xredjhon/NullLinux"
 license=('MIT')
 depends=(
-  ghidra radare2 edb-debugger ltrace strace gdb
-  apktool jadx dex2jar cutter ropper ropgadget
-  checksec pwndbg one_gadget
+  'ghidra'
+  'radare2'
+  'edb'
+  'ltrace'
+  'strace'
+  'gdb'
+  'android-apktool'
+  'jadx'
+  'dex2jar'
+  'cutter'
+  'ropper'
+  'ropgadget'
+  'checksec'
+  'pwndbg'
+  'one_gadget'
+  'r2ghidra'
+  'python-capstone'
+  'python-keystone'
+  'python-unicorn'
+  'yara'
+  'upx'
+  'nasm'
+  'flasm'
+  'jd-gui'
+  'bytecode-viewer'
+  'cfr'
+  'procyon-decompiler'
+  'detect-it-easy'
+  'rizin'
+  'iaito'
 )
+
+package() {
+  install -dm755 "${pkgdir}/etc/nulllinux/roles.d"
+  install -Dm644 /dev/null "${pkgdir}/etc/nulllinux/roles.d/reversing.installed"
+}
