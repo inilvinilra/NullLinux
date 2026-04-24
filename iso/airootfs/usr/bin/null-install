@@ -96,17 +96,21 @@ get_user_config() {
 }
 
 select_roles() {
-  SELECTED_ROLES="$(dialog --backtitle "$BACKTITLE" --title "Security Roles" \
-    --checklist "Select roles to install (optional):" 20 60 9 \
-    "redteam"       "Offensive security and pentesting"    off \
-    "blueteam"      "Defensive security and IR"            off \
-    "osint"         "Open source intelligence"             off \
-    "opsec"         "Operational security and privacy"     off \
-    "network"       "Network analysis and traffic"         off \
-    "forensics"     "Digital forensics"                    off \
-    "web"           "Web application security"             off \
-    "wireless"      "Wireless network auditing"            off \
-    "exploitation"  "Exploit dev and RE"                   off \
+  SELECTED_ROLES="$(dialog --backtitle "$BACKTITLE" --title "Security Roles & Tools" \
+    --checklist "Select roles to install (Space to toggle, Enter to confirm):" 24 70 13 \
+    "redteam"       "Red Team — offensive pentesting (32 tools)"       off \
+    "blueteam"      "Blue Team — defense & IR (19 tools)"              off \
+    "osint"         "OSINT & Recon (33 tools)"                         off \
+    "opsec"         "OPSEC & Privacy (29 tools)"                       off \
+    "network"       "Network Analysis & Sniffing (25 tools)"           off \
+    "forensics"     "Forensics, DFIR & Stego (22 tools)"              off \
+    "web"           "Web App Security (26 tools)"                      off \
+    "wireless"      "Wireless & RF Attacks (21 tools)"                 off \
+    "exploitation"  "Exploitation & Post-Exploitation (23 tools)"      off \
+    "reversing"     "Reverse Engineering & Malware (15 tools)"         off \
+    "devtools"      "Development Environments (15 tools)"              off \
+    "essentials"    "Essential Apps & Utilities (41 tools)"             off \
+    "crypto"        "Crypto & Finance Wallets (5 tools)"               off \
     3>&1 1>&2 2>&3)" || SELECTED_ROLES=""
 }
 
@@ -120,7 +124,7 @@ install_base() {
     zsh networkmanager iwd openssh iptables-nft nftables ufw \
     btrfs-progs dosfstools e2fsprogs efibootmgr exfatprogs f2fs-tools parted \
     xorg-server dolphin konsole kate plasma-desktop plasma-nm plasma-pa \
-    plasma-workspace plasma-systemmonitor polkit-kde-agent qt6-wayland sddm \
+    plasma-workspace plasma-x11-session plasma-systemmonitor polkit-kde-agent qt6-wayland sddm \
     xdg-desktop-portal-kde xdg-user-dirs xdg-utils breeze breeze-gtk \
     kde-gtk-config kwallet-pam kscreen powerdevil plymouth \
     mesa vulkan-icd-loader ttf-dejavu ttf-liberation noto-fonts \
@@ -204,7 +208,7 @@ POSTEOF
 
   dialog --backtitle "$BACKTITLE" --infobox "Copying Null Linux tools..." 3 45
 
-  for tool in null-toolkit null-install; do
+  for tool in null-toolkit null-install null-setup; do
     if [[ -f "/usr/bin/$tool" ]]; then
       install -Dm755 "/usr/bin/$tool" "$TARGET/usr/bin/$tool"
     fi
@@ -247,22 +251,36 @@ POSTEOF
     install -Dm644 /usr/lib/firefox/distribution/policies.json \
       "$TARGET/usr/lib/firefox/distribution/policies.json"
   fi
+
+  local user_home="$TARGET/home/${USERNAME_VALUE}"
+  if [[ -f /etc/skel/.config/autostart/null-setup.desktop ]]; then
+    install -dm755 "$user_home/.config/autostart"
+    install -Dm644 /etc/skel/.config/autostart/null-setup.desktop \
+      "$user_home/.config/autostart/null-setup.desktop"
+    arch-chroot "$TARGET" chown -R "${USERNAME_VALUE}:${USERNAME_VALUE}" "/home/${USERNAME_VALUE}/.config/autostart"
+  fi
 }
 
 install_roles() {
-  if [[ -n "$SELECTED_ROLES" ]]; then
-    for role in $SELECTED_ROLES; do
-      role="${role//\"/}"
-      dialog --backtitle "$BACKTITLE" --infobox "Installing role: ${role}..." 3 40
-      arch-chroot "$TARGET" bash -c "
-        if command -v null-toolkit >/dev/null 2>&1; then
-          null-toolkit install ${role}
-        else
-          echo 'null-toolkit not available, skipping role ${role}'
-        fi
-      " || true
-    done
-  fi
+  [[ -z "$SELECTED_ROLES" ]] && return
+
+  local total=0 current=0
+  for role in $SELECTED_ROLES; do total=$((total + 1)); done
+
+  for role in $SELECTED_ROLES; do
+    role="${role//\"/}"
+    current=$((current + 1))
+    dialog --backtitle "$BACKTITLE" --title "Roles ($current/$total)" \
+      --infobox "Installing role: ${role}...\nThis may take a while." 5 45
+
+    arch-chroot "$TARGET" bash -c "
+      if command -v null-toolkit >/dev/null 2>&1; then
+        null-toolkit install ${role}
+      elif [[ -f /etc/nulllinux/roles.d/${role}.yml ]]; then
+        pacman -S --noconfirm --needed \$(grep '^  - ' /etc/nulllinux/roles.d/${role}.yml | sed 's/^  - //') || true
+      fi
+    " || true
+  done
 }
 
 show_complete() {
@@ -273,10 +291,11 @@ User: ${USERNAME_VALUE}\n\
 Desktop: KDE Plasma (Breeze Dark)\n\
 Boot: systemd-boot\n\
 Firewall: ufw (enabled)\n\
-Repos: Arch + BlackArch + Chaotic-AUR\n\n\
+Repos: Arch + BlackArch + Chaotic-AUR\n\
+Roles: ${SELECTED_ROLES:-none}\n\n\
+A setup wizard will run on first boot to install\nadditional tools if needed.\n\n\
 Remove the installation media and reboot:\n\n\
-  umount -R /mnt\n\
-  reboot" 18 55
+  umount -R /mnt && reboot" 20 55
 }
 
 main() {

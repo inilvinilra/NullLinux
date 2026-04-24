@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MARKER="$HOME/.config/nulllinux-setup-done"
+ROLES_DIR="/etc/nulllinux/roles.d"
+BACKTITLE="Null Linux — First Boot Setup"
+
+if [[ -f "$MARKER" ]]; then
+  exit 0
+fi
+
+if ! command -v dialog >/dev/null 2>&1; then
+  echo "dialog not found."
+  exit 1
+fi
+
+show_welcome() {
+  dialog --backtitle "$BACKTITLE" --title "Welcome to Null Linux" \
+    --yes-label "Setup Now" --no-label "Skip" \
+    --yesno "\n  Welcome to Null Linux!\n\n  This wizard helps you install security tools,\n  development environments, and essential apps.\n\n  You can always run this later with:\n    null-setup\n\n  Or install roles manually:\n    sudo null-toolkit install <role>\n" 16 55
+}
+
+build_checklist() {
+  local items=()
+  for yml in "$ROLES_DIR"/*.yml; do
+    [[ -f "$yml" ]] || continue
+    local role_id
+    role_id="$(basename "$yml" .yml)"
+    local name desc pkg_count
+    name="$(grep '^name:' "$yml" | head -1 | cut -d: -f2- | sed 's/^ *//')"
+    desc="$(grep '^description:' "$yml" | head -1 | cut -d: -f2- | sed 's/^ *//')"
+    pkg_count="$(grep -c '^  - ' "$yml" || echo 0)"
+    items+=("$role_id" "${name} (${pkg_count} pkgs)" "off")
+  done
+  echo "${items[@]}"
+}
+
+select_roles() {
+  local items
+  items=($(build_checklist))
+  local count=$(( ${#items[@]} / 3 ))
+
+  SELECTED="$(dialog --backtitle "$BACKTITLE" --title "Select Roles & Tools" \
+    --checklist "\nSpace = toggle, Enter = confirm\nAll tools are installed from BlackArch/Chaotic/Arch repos.\n" \
+    $(( count + 8 )) 72 "$count" \
+    "${items[@]}" \
+    3>&1 1>&2 2>&3)" || SELECTED=""
+}
+
+install_selected() {
+  if [[ -z "$SELECTED" ]]; then
+    dialog --backtitle "$BACKTITLE" --msgbox "No roles selected. You can install later with:\n\n  sudo null-toolkit install <role>" 8 55
+    return
+  fi
+
+  local total=0
+  local current=0
+  for role in $SELECTED; do
+    role="${role//\"/}"
+    total=$((total + 1))
+  done
+
+  for role in $SELECTED; do
+    role="${role//\"/}"
+    current=$((current + 1))
+    dialog --backtitle "$BACKTITLE" --title "Installing ($current/$total)" \
+      --infobox "Installing: $role\n\nThis may take a while depending on\nyour internet connection..." 7 50
+
+    if command -v null-toolkit >/dev/null 2>&1; then
+      sudo null-toolkit install "$role" 2>&1 | dialog --backtitle "$BACKTITLE" \
+        --title "Installing: $role ($current/$total)" \
+        --programbox 20 75 || true
+    else
+      sudo pacman -S --noconfirm --needed $(grep '^  - ' "$ROLES_DIR/${role}.yml" | sed 's/^  - //') 2>&1 | \
+        dialog --backtitle "$BACKTITLE" \
+        --title "Installing: $role ($current/$total)" \
+        --programbox 20 75 || true
+    fi
+  done
+
+  dialog --backtitle "$BACKTITLE" --title "Setup Complete" \
+    --msgbox "\nInstalled $total role(s) successfully!\n\nManage roles anytime with:\n  null-toolkit list\n  sudo null-toolkit install <role>\n  sudo null-toolkit remove <role>" 12 55
+}
+
+show_system_info() {
+  local kernel hostname mem
+  kernel="$(uname -r)"
+  hostname="$(cat /etc/hostname 2>/dev/null || echo 'null')"
+  mem="$(free -h | awk '/^Mem:/{print $2}')"
+
+  dialog --backtitle "$BACKTITLE" --title "System Info" \
+    --infobox "\n  Host: $hostname\n  Kernel: $kernel\n  Memory: $mem\n  Shell: $SHELL\n" 9 45
+  sleep 2
+}
+
+main() {
+  if ! show_welcome; then
+    mkdir -p "$(dirname "$MARKER")"
+    touch "$MARKER"
+    clear
+    echo "Skipped setup. Run 'null-setup' anytime to configure."
+    exit 0
+  fi
+
+  show_system_info
+  select_roles
+  install_selected
+
+  mkdir -p "$(dirname "$MARKER")"
+  touch "$MARKER"
+  clear
+  echo "Null Linux setup complete. Happy hacking!"
+}
+
+main "$@"
