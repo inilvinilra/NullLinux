@@ -1,9 +1,20 @@
 #!/usr/bin/env bash
+# Shared helpers for QEMU launcher scripts.
+#
+# Default: QXL + GTK (no GL) — the window appears reliably. virtio-vga-gl + gl=on
+# needs virgl; without it, QEMU may show no window or a black display.
+#
+#   NULLLINUX_QEMU_VGA=qxl|virtio|virtio-gl
+#   NULLLINUX_QEMU_DISPLAY=gtk|sdl
+#   NULLLINUX_QEMU_NO_USB=1
+#   NULLLINUX_QEMU_RAM=...   MB
+#   NULLLINUX_QEMU_SMP=...   vCPUs
+
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[1]}")/.." && pwd)"
 OUT_DIR="$ROOT_DIR/out"
-ISO_PATH="${1:-$(find "$OUT_DIR" -maxdepth 1 -type f -name '*.iso' | sort | tail -n 1)}"
+ISO_PATH="${1:-$(find "$OUT_DIR" -maxdepth 1 -type f -name '*.iso' 2>/dev/null | sort | tail -n 1)}"
 ACCEL_ARGS=()
 
 if [[ -z "${ISO_PATH}" || ! -f "${ISO_PATH}" ]]; then
@@ -11,14 +22,14 @@ if [[ -z "${ISO_PATH}" || ! -f "${ISO_PATH}" ]]; then
   exit 1
 fi
 
-if [[ -e /dev/kvm ]]; then
-  ACCEL_ARGS=(-enable-kvm -cpu host,+topoext)
+if [[ -e /dev/kvm && -r /dev/kvm ]]; then
+  ACCEL_ARGS=(-enable-kvm -cpu host)
 fi
 
-TOTAL_RAM=$(free -m | awk '/^Mem:/{print $2}')
-TOTAL_CORES=$(nproc)
-VM_RAM=$(( TOTAL_RAM / 2 ))
-VM_CORES=$(( TOTAL_CORES / 2 ))
+TOTAL_RAM=$(free -m 2>/dev/null | awk '/^Mem:/{print $2}' || echo 4096)
+TOTAL_CORES=$(nproc 2>/dev/null || echo 4)
+VM_RAM="${NULLLINUX_QEMU_RAM:-$(( TOTAL_RAM / 2 ))}"
+VM_CORES="${NULLLINUX_QEMU_SMP:-$(( TOTAL_CORES / 2 ))}"
 [[ $VM_RAM -lt 2048 ]] && VM_RAM=2048
 [[ $VM_RAM -gt 8192 ]] && VM_RAM=8192
 [[ $VM_CORES -lt 2 ]] && VM_CORES=2
@@ -29,7 +40,32 @@ if [[ ! -f "$DISK_IMG" ]]; then
   qemu-img create -f qcow2 "$DISK_IMG" 40G
 fi
 
-echo "VM: ${VM_RAM}MB RAM, ${VM_CORES} cores, KVM=$([ ${#ACCEL_ARGS[@]} -gt 0 ] && echo yes || echo no)"
+VGA_MODE="${NULLLINUX_QEMU_VGA:-qxl}"
+QEMU_DISPLAY="${NULLLINUX_QEMU_DISPLAY:-gtk}"
+declare -a DISPLAY_VGA=()
+
+case "$VGA_MODE" in
+  virtio-gl)
+    DISPLAY_VGA=(-device virtio-vga-gl -display "${QEMU_DISPLAY},gl=on")
+    echo "VGA: virtio-vga-gl (needs virGL; if no window, use: NULLLINUX_QEMU_VGA=qxl)" >&2
+    ;;
+  virtio)
+    DISPLAY_VGA=(-device virtio-vga -display "$QEMU_DISPLAY")
+    echo "VGA: virtio-vga" >&2
+    ;;
+  qxl|*)
+    DISPLAY_VGA=(-vga qxl -display "$QEMU_DISPLAY")
+    echo "VGA: qxl (default, reliable for NullLinux / KDE in VMs)" >&2
+    ;;
+esac
+
+USB_ARGS=()
+if [[ -z "${NULLLINUX_QEMU_NO_USB:-}" ]]; then
+  USB_ARGS=(-usb -device usb-tablet)
+fi
+
+echo "VM: ${VM_RAM}MB RAM, ${VM_CORES} vCPUs, KVM=$([ ${#ACCEL_ARGS[@]} -gt 0 ] && echo yes || echo no)" >&2
+echo "Display: $QEMU_DISPLAY  ISO: $ISO_PATH" >&2
 
 COMMON_QEMU_ARGS=(
   -m "$VM_RAM"
@@ -38,11 +74,9 @@ COMMON_QEMU_ARGS=(
   -cdrom "$ISO_PATH"
   -drive file="$DISK_IMG",format=qcow2,if=virtio,cache=writeback,discard=unmap
   -boot d
-  -device virtio-vga-gl
-  -display gtk,gl=on
+  "${DISPLAY_VGA[@]}"
   -device virtio-net-pci,netdev=n1
   -netdev user,id=n1
   -device intel-hda -device hda-duplex
-  -usb -device usb-tablet
-  -global ICH9-LPC.disable_s3=1
+  "${USB_ARGS[@]}"
 )
