@@ -5,5 +5,5 @@ Comment=Install security tools, development environments, and essential apps
 Exec=konsole -e null-setup
 Icon=preferences-system
 Terminal=false
-Categories=System;
-X-KDE-autostart-phase=2
+Categories=System;Settings;
+Keywords=setup;install;tools;security;roles;

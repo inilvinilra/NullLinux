@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.2.0"
+VERSION="1.0.0"
 TARGET="/mnt"
 BACKTITLE="Null Linux Installer v${VERSION}"
 
@@ -9,7 +9,6 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
-DIM='\033[2m'
 NC='\033[0m'
 
 die() { echo -e "${RED}Error: $*${NC}" >&2; exit 1; }
@@ -95,25 +94,6 @@ get_user_config() {
   fi
 }
 
-select_roles() {
-  SELECTED_ROLES="$(dialog --backtitle "$BACKTITLE" --title "Security Roles & Tools" \
-    --checklist "Select roles to install (Space to toggle, Enter to confirm):" 24 70 13 \
-    "redteam"       "Red Team — offensive pentesting (44 tools)"       off \
-    "blueteam"      "Blue Team — defense & IR (27 tools)"              off \
-    "osint"         "OSINT & Recon (43 tools)"                         off \
-    "opsec"         "OPSEC & Privacy (38 tools)"                       off \
-    "network"       "Network Analysis & Sniffing (40 tools)"           off \
-    "forensics"     "Forensics, DFIR & Stego (33 tools)"              off \
-    "web"           "Web App Security (38 tools)"                      off \
-    "wireless"      "Wireless & RF Attacks (28 tools)"                 off \
-    "exploitation"  "Exploitation & Post-Exploit (32 tools)"           off \
-    "reversing"     "Reverse Engineering & Malware (30 tools)"         off \
-    "devtools"      "Development Environments (35 tools)"              off \
-    "essentials"    "Essential Apps & Utilities (81 tools)"             off \
-    "crypto"        "Crypto & Finance (4 tools)"                       off \
-    3>&1 1>&2 2>&3)" || SELECTED_ROLES=""
-}
-
 install_base() {
   dialog --backtitle "$BACKTITLE" --title "Installing" \
     --infobox "Installing base system...\nThis may take several minutes." 5 50
@@ -129,7 +109,8 @@ install_base() {
     kde-gtk-config kwallet-pam kscreen powerdevil plymouth \
     mesa vulkan-icd-loader ttf-dejavu ttf-liberation noto-fonts \
     adwaita-icon-theme papirus-icon-theme archlinux-keyring \
-    blackarch-keyring blackarch-mirrorlist chaotic-keyring chaotic-mirrorlist
+    blackarch-keyring blackarch-mirrorlist chaotic-keyring chaotic-mirrorlist \
+    paru yay dialog firefox fastfetch git
 
   genfstab -U "$TARGET" > "$TARGET/etc/fstab"
 }
@@ -206,7 +187,7 @@ POSTEOF
   arch-chroot "$TARGET" /root/null-postinstall.sh
   rm -f "$TARGET/root/null-postinstall.sh"
 
-  dialog --backtitle "$BACKTITLE" --infobox "Copying Null Linux tools..." 3 45
+  dialog --backtitle "$BACKTITLE" --infobox "Copying Null Linux tools and configs..." 3 50
 
   for tool in null-toolkit null-install null-setup; do
     if [[ -f "/usr/bin/$tool" ]]; then
@@ -223,11 +204,9 @@ POSTEOF
     cp -a /usr/share/nulllinux "$TARGET/usr/share/" 2>/dev/null || true
   fi
 
-  if [[ -d /usr/share/desktop-directories ]]; then
-    for f in /usr/share/desktop-directories/nulllinux-*.directory; do
-      [[ -f "$f" ]] && cp -f "$f" "$TARGET/usr/share/desktop-directories/"
-    done
-  fi
+  for f in /usr/share/desktop-directories/nulllinux-*.directory; do
+    [[ -f "$f" ]] && cp -f "$f" "$TARGET/usr/share/desktop-directories/" 2>/dev/null || true
+  done
 
   if [[ -f /etc/xdg/menus/applications-merged/nulllinux-security.menu ]]; then
     install -Dm644 /etc/xdg/menus/applications-merged/nulllinux-security.menu \
@@ -252,50 +231,39 @@ POSTEOF
       "$TARGET/usr/lib/firefox/distribution/policies.json"
   fi
 
+  local skel_dirs=(".config/autostart" ".config/fastfetch" ".config/konsole" ".local/share/konsole")
   local user_home="$TARGET/home/${USERNAME_VALUE}"
-  if [[ -f /etc/skel/.config/autostart/null-setup.desktop ]]; then
-    install -dm755 "$user_home/.config/autostart"
-    install -Dm644 /etc/skel/.config/autostart/null-setup.desktop \
-      "$user_home/.config/autostart/null-setup.desktop"
-    arch-chroot "$TARGET" chown -R "${USERNAME_VALUE}:${USERNAME_VALUE}" "/home/${USERNAME_VALUE}/.config/autostart"
-  fi
-}
-
-install_roles() {
-  [[ -z "$SELECTED_ROLES" ]] && return
-
-  local total=0 current=0
-  for role in $SELECTED_ROLES; do total=$((total + 1)); done
-
-  for role in $SELECTED_ROLES; do
-    role="${role//\"/}"
-    current=$((current + 1))
-    dialog --backtitle "$BACKTITLE" --title "Roles ($current/$total)" \
-      --infobox "Installing role: ${role}...\nThis may take a while." 5 45
-
-    arch-chroot "$TARGET" bash -c "
-      if command -v null-toolkit >/dev/null 2>&1; then
-        null-toolkit install ${role}
-      elif [[ -f /etc/nulllinux/roles.d/${role}.yml ]]; then
-        pacman -S --noconfirm --needed \$(grep '^  - ' /etc/nulllinux/roles.d/${role}.yml | sed 's/^  - //') || true
-      fi
-    " || true
+  for d in "${skel_dirs[@]}"; do
+    if [[ -d "/etc/skel/$d" ]]; then
+      install -dm755 "$user_home/$d"
+      cp -a "/etc/skel/$d/." "$user_home/$d/" 2>/dev/null || true
+    fi
   done
+
+  for f in .zshrc .config/kwinrc .config/baloofilerc .config/kdeglobals .config/plasmarc; do
+    if [[ -f "/etc/skel/$f" ]]; then
+      install -Dm644 "/etc/skel/$f" "$user_home/$f"
+    fi
+  done
+
+  arch-chroot "$TARGET" chown -R "${USERNAME_VALUE}:${USERNAME_VALUE}" "/home/${USERNAME_VALUE}"
 }
 
 show_complete() {
   dialog --backtitle "$BACKTITLE" --title "Installation Complete" \
-    --msgbox "Null Linux has been installed successfully!\n\n\
+    --msgbox "Null Linux has been installed!\n\n\
 Hostname: ${HOSTNAME_VALUE}\n\
 User: ${USERNAME_VALUE}\n\
 Desktop: KDE Plasma (Breeze Dark)\n\
-Boot: systemd-boot\n\
+Boot: systemd-boot (UEFI)\n\
 Firewall: ufw (enabled)\n\
-Repos: Arch + BlackArch + Chaotic-AUR\n\
-Roles: ${SELECTED_ROLES:-none}\n\n\
-A setup wizard will run on first boot to install\nadditional tools if needed.\n\n\
+AUR: paru + yay\n\
+Repos: Arch + BlackArch + Chaotic-AUR\n\n\
+On first login, the Null Linux Setup Wizard\n\
+will launch to install security tools, apps,\n\
+and role packages.\n\n\
 Remove the installation media and reboot:\n\n\
-  umount -R /mnt && reboot" 20 55
+  umount -R /mnt && reboot" 22 55
 }
 
 main() {
@@ -309,12 +277,11 @@ main() {
   fi
 
   dialog --backtitle "$BACKTITLE" --title "Null Linux Installer" \
-    --yesno "Welcome to the Null Linux installer.\n\nThis will install Null Linux on your system.\nContinue?" 10 50 || exit 0
+    --yesno "\n  Welcome to Null Linux\n\n  This will install a clean Null Linux system.\n  Security tools will be available after first boot\n  via the Setup Wizard.\n\n  Continue?" 13 55 || exit 0
 
   select_disk
   confirm_wipe
   get_user_config
-  select_roles
 
   dialog --backtitle "$BACKTITLE" --title "Review" \
     --yesno "Installation summary:\n\n\
@@ -322,13 +289,13 @@ Disk: ${DISK}\n\
 Hostname: ${HOSTNAME_VALUE}\n\
 User: ${USERNAME_VALUE}\n\
 Timezone: ${TIMEZONE_VALUE}\n\
-Roles: ${SELECTED_ROLES:-none}\n\n\
+Desktop: KDE Plasma\n\
+AUR helpers: paru, yay\n\n\
 Begin installation?" 16 50 || exit 0
 
   partition_disk
   install_base
   configure_system
-  install_roles
   show_complete
 
   umount -R "$TARGET" 2>/dev/null || true
