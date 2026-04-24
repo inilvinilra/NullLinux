@@ -24,6 +24,7 @@ packages:
   - wifiphisher
   - iw
   - wavemon
+  - horst
   - spectools
   - linssid
   - sparrow-wifi

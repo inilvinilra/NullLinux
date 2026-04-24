@@ -1,6 +1,6 @@
 pkgname=nulllinux-devtools
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Programming languages, compilers, and build systems"
 arch=('any')
 url="https://github.com/xredjhon/NullLinux"

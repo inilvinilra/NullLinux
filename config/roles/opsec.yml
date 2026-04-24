@@ -26,6 +26,10 @@ packages:
   - wireguard-tools
   - openvpn
   - signal-desktop
+  - session-desktop-bin
+  - simplex-chat-bin
+  - briar-desktop
+  - tomb
   - bubblewrap
   - zulucrypt
   - paperkey

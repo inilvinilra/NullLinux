@@ -1,6 +1,6 @@
 pkgname=nulllinux-blueteam
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Defensive security, monitoring, IDS/IPS, and incident response"
 arch=('any')
 url="https://github.com/xredjhon/NullLinux"
@@ -30,6 +30,8 @@ depends=(
   'apparmor'
   'audit'
   'inotify-tools'
+  'aide'
+  'wazuh-agent'
   'tcpdump'
   'arpwatch'
   'logrotate'

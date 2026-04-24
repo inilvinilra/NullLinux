@@ -42,5 +42,8 @@ packages:
   - chaos-client
   - mapcidr
   - katana-pd
+  - katana
   - tlsx
   - asnmap
+  - alterx
+  - cdncheck

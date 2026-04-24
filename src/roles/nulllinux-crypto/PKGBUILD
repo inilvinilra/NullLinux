@@ -1,6 +1,6 @@
 pkgname=nulllinux-crypto
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Cryptocurrency wallets and blockchain tools"
 arch=('any')
 url="https://github.com/xredjhon/NullLinux"
@@ -9,7 +9,10 @@ depends=(
   'monero-gui'
   'electrum'
   'monero'
+  'trezor-suite-bin'
+  'bisq-bin'
   'python-eth-utils'
+  'python-web3'
 )
 
 package() {

@@ -1,6 +1,6 @@
 pkgname=nulllinux-web
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Web application penetration testing and vulnerability scanning"
 arch=('any')
 url="https://github.com/xredjhon/NullLinux"
@@ -44,6 +44,7 @@ depends=(
   'secretfinder'
   'paramspider'
   'katana-pd'
+  'katana'
 )
 
 package() {

@@ -25,6 +25,8 @@ packages:
   - apparmor
   - audit
   - inotify-tools
+  - aide
+  - wazuh-agent
   - tcpdump
   - arpwatch
   - logrotate

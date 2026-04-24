@@ -1,6 +1,6 @@
 pkgname=nulllinux-redteam
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Full offensive security and penetration testing toolkit"
 arch=('any')
 url="https://github.com/xredjhon/NullLinux"
@@ -49,6 +49,7 @@ depends=(
   'adidnsdump'
   'ldeep'
   'go-windapsearch'
+  'wordlists'
   'bloodhound-python'
 )
 

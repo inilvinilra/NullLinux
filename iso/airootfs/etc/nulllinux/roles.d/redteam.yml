@@ -44,4 +44,5 @@ packages:
   - adidnsdump
   - ldeep
   - go-windapsearch
+  - wordlists
   - bloodhound-python

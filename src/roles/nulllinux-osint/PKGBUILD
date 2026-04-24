@@ -1,6 +1,6 @@
 pkgname=nulllinux-osint
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Open source intelligence gathering, reconnaissance, and asset discovery"
 arch=('any')
 url="https://github.com/xredjhon/NullLinux"
@@ -47,8 +47,11 @@ depends=(
   'chaos-client'
   'mapcidr'
   'katana-pd'
+  'katana'
   'tlsx'
   'asnmap'
+  'alterx'
+  'cdncheck'
 )
 
 package() {

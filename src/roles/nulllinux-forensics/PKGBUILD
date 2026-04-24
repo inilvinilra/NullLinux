@@ -1,6 +1,6 @@
 pkgname=nulllinux-forensics
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Digital forensics, incident response, steganography, and malware triage"
 arch=('any')
 url="https://github.com/xredjhon/NullLinux"

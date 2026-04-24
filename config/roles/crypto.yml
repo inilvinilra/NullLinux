@@ -4,4 +4,7 @@ packages:
   - monero-gui
   - electrum
   - monero
+  - trezor-suite-bin
+  - bisq-bin
   - python-eth-utils
+  - python-web3

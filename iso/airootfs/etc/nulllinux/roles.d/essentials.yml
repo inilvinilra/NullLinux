@@ -82,3 +82,10 @@ packages:
   - unrar
   - zip
   - unzip
+  - paru
+  - yay
+  - rustdesk
+  - megasync
+  - logseq-desktop-bin
+  - zapzap
+  - ayugram-desktop-bin

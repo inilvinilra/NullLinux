@@ -31,6 +31,7 @@ packages:
   - arping-th
   - fping
   - lft
+  - dnstop
   - darkstat
   - iftop
   - nethogs

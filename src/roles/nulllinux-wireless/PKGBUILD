@@ -1,6 +1,6 @@
 pkgname=nulllinux-wireless
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Wireless network auditing, WiFi attacks, and RF tools"
 arch=('any')
 url="https://github.com/xredjhon/NullLinux"
@@ -29,6 +29,7 @@ depends=(
   'wifiphisher'
   'iw'
   'wavemon'
+  'horst'
   'spectools'
   'linssid'
   'sparrow-wifi'

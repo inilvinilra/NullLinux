@@ -39,3 +39,4 @@ packages:
   - secretfinder
   - paramspider
   - katana-pd
+  - katana

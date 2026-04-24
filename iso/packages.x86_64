@@ -108,6 +108,10 @@ noto-fonts
 adwaita-icon-theme
 papirus-icon-theme
 
+# ── AUR helpers ────────────────────────────────────────────
+paru
+yay
+
 # ── Keyrings & mirrors ─────────────────────────────────────
 archlinux-keyring
 blackarch-keyring

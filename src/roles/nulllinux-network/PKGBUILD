@@ -1,6 +1,6 @@
 pkgname=nulllinux-network
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Network monitoring, packet capture, IDS/IPS, and MITM tools"
 arch=('any')
 url="https://github.com/xredjhon/NullLinux"
@@ -36,6 +36,7 @@ depends=(
   'arping-th'
   'fping'
   'lft'
+  'dnstop'
   'darkstat'
   'iftop'
   'nethogs'
