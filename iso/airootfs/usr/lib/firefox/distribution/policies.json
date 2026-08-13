@@ -12,7 +12,7 @@
     "OverrideFirstRunPage": "",
     "OverridePostUpdatePage": "",
     "Homepage": {
-      "URL": "https://github.com/xredjhon/NullLinux",
+      "URL": "https://github.com/inilvinilra/NullLinux",
       "Locked": false,
       "StartPage": "homepage"
     },
@@ -91,7 +91,7 @@
     "Bookmarks": [
       {
         "Title": "Null Linux",
-        "URL": "https://github.com/xredjhon/NullLinux",
+        "URL": "https://github.com/inilvinilra/NullLinux",
         "Placement": "toolbar"
       },
       {

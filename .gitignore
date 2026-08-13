@@ -5,3 +5,4 @@ work/
 *.log
 .Null
 .nvchecker/newver.json
+__pycache__/

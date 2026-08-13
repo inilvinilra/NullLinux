@@ -7,12 +7,12 @@ role-based security tooling, and access to Arch, BlackArch, and Chaotic-AUR repo
 
 - **Arch-based** rolling release with Arch + BlackArch + Chaotic-AUR repos
 - **KDE Plasma** dark desktop (Breeze Dark theme, Papirus-Dark icons)
-- **9 security roles** — Red Team, Blue Team, OSINT, OPSEC, Network, Forensics, Web, Wireless, Exploitation
+- **13 tool roles** — see [docs/roles.md](docs/roles.md), generated from `config/roles/`
 - **null-toolkit CLI** — install/remove security tool categories on demand
 - **null-install TUI** — dialog-based installer with role selection
-- **Hardened defaults** — ufw firewall, SSH key-only, restrictive file permissions
+- **Conservative defaults** — firewall denies incoming, no service listens by default, no telemetry
 - **Plymouth** branded boot splash
-- **BIOS + UEFI** boot support
+- **UEFI installation**; the live ISO also boots on legacy BIOS
 - **CI/CD** — GitHub Actions for ISO builds and package management
 - **Docker** image available
 
@@ -39,25 +39,21 @@ Build on an Arch-based host with:
 - `edk2-ovmf` (UEFI testing)
 - `rate-mirrors` (optional, build-time mirror optimization)
 
-BlackArch and Chaotic-AUR keyrings must be installed on the build host:
+Third-party repositories (BlackArch, Chaotic-AUR) are **opt-in**. Enabling them
+requires verifying a full key fingerprint against the project's published value —
+never a short key ID, and never a piped install script. See
+[docs/package-sources.md](docs/package-sources.md).
+
+## Validate and build
 
 ```bash
-# BlackArch
-curl -sL https://blackarch.org/strap.sh | sudo bash
-
-# Chaotic-AUR
-sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
-sudo pacman-key --lsign-key 3056513887B78AEB
-sudo pacman -U \
-  'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
-  'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+./tools/lint.sh          # release-blocking rules
+./tests/run-tests.sh     # unit tests, no root required
+sudo ./scripts/build-iso.sh
 ```
 
-## Build
-
-```bash
-./scripts/build-iso.sh
-```
+The build refuses to run if the validation gate fails, and never modifies the
+host's pacman or mirror configuration.
 
 ## Test
 
@@ -95,7 +91,14 @@ null-toolkit list
 null-toolkit info network
 ```
 
-Available: `redteam` `blueteam` `osint` `opsec` `network` `forensics` `web` `wireless` `exploitation`
+Available: `essentials` `devtools` `network` `web` `osint` `opsec` `redteam` `exploitation`
+`blueteam` `forensics` `reversing` `wireless` `crypto`
+
+Role removal never removes a package another installed role still needs:
+
+```bash
+sudo null-toolkit remove redteam --dry-run   # show the exact transaction first
+```
 
 ## Docker
 
@@ -106,11 +109,20 @@ docker run -it nulllinux
 
 ## Live Environment
 
-- User: `null` (passwordless, NOPASSWD sudo)
+- User: `null` (passwordless, NOPASSWD sudo) — **live medium only**, never installed
 - Desktop: KDE Plasma (Breeze Dark)
-- Firewall: ufw (deny incoming, allow outgoing)
-- SSH: key-based only
-- Welcome app launches on first login
+- Firewall: deny incoming, allow outgoing
+- SSH: daemon installed but not enabled; nothing listens by default
+- Setup wizard runs once on first login and stays available as `null-setup`
+
+## Status
+
+Alpha. See [docs/audit-baseline.md](docs/audit-baseline.md) for verified state,
+known defects and the release gates that are not yet met. The ISO is unsigned;
+encryption, Secure Boot and rollback are not implemented yet.
+
+Null Linux is an independent Arch-based distribution. It is not endorsed by or
+affiliated with Arch Linux, BlackArch, KDE, or any packaged upstream.
 
 ## Roadmap
 
@@ -118,4 +130,5 @@ See `docs/roadmap.md`.
 
 ## License
 
-This project is provided as-is for educational and security research purposes.
+MIT (see LICENSE). Provided as-is for lawful security research and authorized
+testing. You are responsible for having permission to test any system.

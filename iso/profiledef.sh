@@ -3,7 +3,7 @@
 
 iso_name="null-linux"
 iso_label="NULL_LINUX"
-iso_publisher="Null Linux Project <https://github.com/xredjhon/NullLinux>"
+iso_publisher="Null Linux Project <https://github.com/inilvinilra/NullLinux>"
 iso_application="Null Linux Live ISO"
 iso_version="0.2.0-alpha"
 install_dir="null"

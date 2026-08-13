@@ -4,7 +4,7 @@ newver = ".nvchecker/newver.json"
 
 [null-toolkit]
 source = "github"
-github = "xredjhon/NullLinux"
+github = "inilvinilra/NullLinux"
 use_latest_tag = true
 
 [nmap]
