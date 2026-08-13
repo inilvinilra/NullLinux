@@ -231,16 +231,40 @@ hardware matrix) stay untouched until the P0 gate is green.
 
 ## 5. P0 status
 
-`./tools/lint.sh` passes (one check skipped: ShellCheck is not installed here).
-`./tests/run-tests.sh` reports 73 passing, 0 failing.
+`./tools/lint.sh` passes with **no checks skipped** (ShellCheck included).
+`./tests/run-tests.sh` reports 83 passing, 0 failing.
 
-Still open before P0 can be called complete:
+### Verified by execution
 
-- **No ISO has been built and no image has been booted.** Every boot-related claim in this
-  document is unverified. `mkarchiso` and QEMU are not available in the audit environment.
-- ShellCheck has never run over the tree.
-- Live session still defaults to Plasma X11. Wayland is the intended default, but switching it
-  without a boot test would be an untested change to the one path that must always work.
+- **The ISO builds.** 2.1 GB, from official Arch repositories only.
+  The profile had never built before: `file_permissions` referenced four paths that do not exist
+  in `airootfs`, and mkarchiso aborted before installing a single package.
+- **The live ISO boots under UEFI/OVMF.** Verified headless in QEMU with a framebuffer capture:
+  systemd-boot, kernel, initramfs, SDDM autologin and a full Plasma session with the Null Linux
+  panel layout.
+- **The first-run wizard appears exactly once** and reports 13 roles and 439 unique packages read
+  from the generated runtime data.
+- **Role status is derived from the real package database.** Run against the built rootfs, the
+  role manager reports genuine per-role and per-package state, and distinguishes
+  "in repositories" from "not in configured repositories".
+- **Desktop entries appear only for installed tools.** The live image installs no security tools,
+  so it ships no tool launchers — instead of the previous 29 entries pointing at absent binaries.
+
+### Catalog reality
+
+With official Arch repositories only, **182 of 439 unique packages (201 of 497 entries) cannot be
+installed**. Per role it ranges from 1 missing in `devtools` to 37 in `osint` and 34 in `web`.
+Run `tools/check-availability.sh` to reproduce. This is expected: most security tooling lives in
+BlackArch or the AUR. It is reported rather than hidden, and users who decline third-party
+repositories now see honest unresolved-package output instead of a false success.
+
+### Still open before P0 is complete
+
+- Install-to-disk has **not** been executed. The installer's disk filtering was verified read-only
+  on a real machine, but no automated install-and-reboot test exists yet.
+- Installer cancellation and failure-cleanup paths are untested end to end.
+- Live session still defaults to Plasma X11. Wayland is the intended default; switching it needs
+  its own boot test before the claim is made.
 - Null Linux identity, KDE defaults and tooling are installed by the installer, not yet shipped
   as signed packages.
 - No signing, no SBOM, no reproducibility work; the ISO is unsigned.
