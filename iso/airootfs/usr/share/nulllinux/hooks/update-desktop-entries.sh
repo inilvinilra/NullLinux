@@ -1,19 +1,31 @@
 #!/usr/bin/env bash
-# Syncs NullLinux desktop entries for installed tools into the applications dir.
+# Keep Null Linux tool launchers in step with what is actually installed.
+# Idempotent: adds entries for installed tools, removes entries for tools that
+# are gone. Runs after every pacman transaction, so it needs no target list.
+set -uo pipefail
 
-DESKTOP_SRC="/usr/share/nulllinux/desktop-entries"
-DESKTOP_DST="/usr/share/applications"
+SRC="/usr/share/nulllinux/desktop-entries"
+DST="/usr/share/applications"
 
-[[ -d "$DESKTOP_SRC" ]] || exit 0
+[[ -d "$SRC" ]] || exit 0
 
-while read -r pkg; do
-  for f in "$DESKTOP_SRC"/*.desktop; do
-    [[ -f "$f" ]] || continue
-    base="$(basename "$f" .desktop)"
-    if [[ "$base" == "$pkg" ]] || [[ "$base" == *"$pkg"* ]]; then
-      cp -f "$f" "$DESKTOP_DST/nulllinux-$(basename "$f")"
+changed=0
+for entry in "$SRC"/*.desktop; do
+  [[ -f "$entry" ]] || continue
+  target="$DST/nulllinux-$(basename "$entry")"
+  pkg="$(sed -n 's/^X-NullLinux-Package=//p' "$entry" | head -1)"
+  [[ -n "$pkg" ]] || continue
+
+  if pacman -Qq "$pkg" >/dev/null 2>&1; then
+    if ! cmp -s "$entry" "$target"; then
+      install -Dm644 "$entry" "$target"
+      changed=1
     fi
-  done
+  elif [[ -e "$target" ]]; then
+    rm -f "$target"
+    changed=1
+  fi
 done
 
-update-desktop-database "$DESKTOP_DST" 2>/dev/null || true
+[[ $changed -eq 1 ]] && update-desktop-database "$DST" >/dev/null 2>&1
+exit 0

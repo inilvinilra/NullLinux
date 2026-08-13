@@ -2,10 +2,10 @@
 Type = Package
 Operation = Install
 Operation = Upgrade
+Operation = Remove
 Target = *
 
 [Action]
-Description = Updating Null Linux desktop entries...
+Description = Syncing Null Linux desktop entries with installed packages...
 When = PostTransaction
 Exec = /usr/share/nulllinux/hooks/update-desktop-entries.sh
-NeedsTargets

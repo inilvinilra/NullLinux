@@ -1,9 +1,10 @@
 [Desktop Entry]
 Type=Application
 Name=Null Linux Setup
-Comment=Install security tools, development environments, and essential apps
-Exec=konsole -e null-setup
+Comment=Choose which tools to install on this system
+Exec=null-setup
+TryExec=null-setup
 Icon=preferences-system
 Terminal=false
-Categories=System;Settings;
+Categories=System;
 Keywords=setup;install;tools;security;roles;

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# One-shot launcher for the setup wizard.
+#
+# The wizard itself stays available from the menu and from the shell; this
+# wrapper is what autostart runs, and it steps aside once first run is done.
+set -uo pipefail
+
+STATE="${XDG_CONFIG_HOME:-$HOME/.config}/nulllinux-setuprc"
+
+first_run_done() {
+  [[ -f "$STATE" ]] && grep -qi '^FirstRunDone=true' "$STATE"
+}
+
+mark_done() {
+  mkdir -p "$(dirname "$STATE")"
+  printf '[General]\nFirstRunDone=true\n' > "$STATE"
+}
+
+first_run_done && exit 0
+
+# Mark before launching: a crashed or force-closed wizard must not turn into a
+# dialog that reappears at every login. null-setup remains runnable by hand.
+mark_done
+
+exec konsole -e null-setup
