@@ -241,7 +241,12 @@ hardware matrix) stay untouched until the P0 gate is green.
   in `airootfs`, and mkarchiso aborted before installing a single package.
 - **The live ISO boots under UEFI/OVMF.** Verified headless in QEMU with a framebuffer capture:
   systemd-boot, kernel, initramfs, SDDM autologin and a full Plasma session with the Null Linux
-  panel layout.
+  panel layout and wallpaper.
+- **A boot test caught a real defect.** The panel applied but the wallpaper did not: a desktop
+  containment belongs to an activity and Plasma recreates it on first login, discarding a
+  wallpaper configured against a guessed containment number. The first attempted fix (a `file://`
+  URL) was wrong — a running Plasma 6.7 session stores a bare path — and a rebuild proved it.
+  Branding is now applied through `plasma-apply-wallpaperimage` and verified by screenshot.
 - **The first-run wizard appears exactly once** and reports 13 roles and 439 unique packages read
   from the generated runtime data.
 - **Role status is derived from the real package database.** Run against the built rootfs, the
@@ -260,8 +265,11 @@ repositories now see honest unresolved-package output instead of a false success
 
 ### Still open before P0 is complete
 
-- Install-to-disk has **not** been executed. The installer's disk filtering was verified read-only
-  on a real machine, but no automated install-and-reboot test exists yet.
+- Install-to-disk has **not** been executed. `tests/install-test.sh` exists and is
+  ShellCheck-clean, but it needs a loop device, and the audit host cannot create one: a kernel
+  upgrade replaced the running kernel's module tree, so `loop` cannot be loaded until the machine
+  reboots. Run it after a reboot:
+  `sudo ./tests/install-test.sh`. Until it passes, no claim is made about installing to disk.
 - Installer cancellation and failure-cleanup paths are untested end to end.
 - Live session still defaults to Plasma X11. Wayland is the intended default; switching it needs
   its own boot test before the claim is made.

@@ -34,6 +34,16 @@ for cmd in losetup pacstrap arch-chroot qemu-system-x86_64 qemu-img; do
   command -v "$cmd" >/dev/null || die "missing dependency: $cmd"
 done
 
+# A kernel upgrade replaces the running kernel's module tree, so loop cannot be
+# loaded until the machine reboots. Say that instead of failing on a bare ENOENT.
+if [[ ! -e /dev/loop0 ]] && ! modprobe loop 2>/dev/null; then
+  if [[ ! -d "/lib/modules/$(uname -r)" ]]; then
+    die "the running kernel $(uname -r) has no module tree left on disk
+  (an upgrade replaced it). Reboot before running this test."
+  fi
+  die "the loop driver is unavailable; this test needs it to create a target disk"
+fi
+
 mkdir -p "$OUT_DIR" "$TARGET_MNT"
 rm -f "$IMAGE"
 truncate -s "${SIZE_GB}G" "$IMAGE"
