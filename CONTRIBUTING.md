@@ -5,16 +5,22 @@
 1. Fork the repository
 2. Clone your fork
 3. Install build dependencies (see README.md)
-4. Install BlackArch and Chaotic-AUR keyrings on your build host
-5. Run `./scripts/check-host.sh` to verify your environment
+4. Run `./scripts/check-host.sh` to verify your environment
+
+Third-party keyrings are not needed to build: the base image uses official Arch
+repositories only.
 
 ## Building
 
 ```bash
-./scripts/build-iso.sh
-./scripts/run-qemu.sh       # test BIOS boot
-./scripts/run-qemu-uefi.sh  # test UEFI boot
+./tools/lint.sh             # must pass; the build runs it too
+./tests/run-tests.sh        # unit tests
+sudo ./scripts/build-iso.sh
+./tests/qemu-boot-test.sh   # headless boot test with a screenshot
 ```
+
+Every change must keep `tools/lint.sh` and `tests/run-tests.sh` passing. CI runs
+both on every pull request.
 
 ## Project Structure
 
@@ -22,8 +28,15 @@
 - `src/roles/` — metapackage PKGBUILDs for each security role
 - `src/tools/` — null-toolkit CLI source
 - `src/installer/` — null-install TUI installer source
-- `config/roles/` — YAML role definitions (package lists)
+- `config/` — **canonical** role and launcher manifests
+- `src/lib/` — shared package engine and validation used by every tool
+- `tools/` — validation gate and the generator for all derived files
+- `tests/` — unit tests and the QEMU boot test
 - `scripts/` — build and test helpers
+
+Files under `iso/airootfs/usr/share/nulllinux/`, `src/roles/*/PKGBUILD` and
+`docs/roles.md` are **generated**. Edit `config/` and run `tools/generate.py`;
+the gate fails if the tree is stale.
 
 ## Adding a New Tool
 
