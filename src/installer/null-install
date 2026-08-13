@@ -20,6 +20,7 @@ DISK=""
 EFI_PART=""
 ROOT_PART=""
 INSTALL_STARTED=false
+UNATTENDED=false
 
 log() { printf '[%s] %s\n' "$(date -Is)" "$*" >> "$LOG"; }
 
@@ -224,7 +225,11 @@ You can enable them later. Default is no." 13 66
 step() {
   local label="$1"; shift
   log "step: $label"
-  dialog --backtitle "$BACKTITLE" --infobox "$label..." 3 60
+  if $UNATTENDED; then
+    printf '==> %s\n' "$label"
+  else
+    dialog --backtitle "$BACKTITLE" --infobox "$label..." 3 60
+  fi
   if ! "$@" >> "$LOG" 2>&1; then
     die "$label failed. See $LOG"
   fi
@@ -367,7 +372,59 @@ verify_install() {
   return 0
 }
 
+# Unattended mode exists for automated tests. It reads every answer from a file,
+# validates them exactly like the interactive path, and requires the file to name
+# the target device explicitly and to confirm destruction in writing.
+load_answers() {
+  local file="$1"
+  [[ -f "$file" ]] || die "answer file not found: $file"
+
+  local key value
+  while IFS='=' read -r key value; do
+    [[ -z "$key" || "$key" == \#* ]] && continue
+    case "$key" in
+      disk) DISK="$value" ;;
+      hostname) HOSTNAME_VALUE="$value" ;;
+      username) USERNAME_VALUE="$value" ;;
+      timezone) TIMEZONE_VALUE="$value" ;;
+      user_password) USER_PASSWORD="$value" ;;
+      root_password) ROOT_PASSWORD="$value" ;;
+      third_party_repos) ENABLE_THIRD_PARTY="$value" ;;
+      confirm_destroy_device) CONFIRM_DEVICE="$value" ;;
+      *) die "unknown key in answer file: $key" ;;
+    esac
+  done < "$file"
+
+  : "${DISK:?answer file must set disk}"
+  : "${CONFIRM_DEVICE:=}"
+  : "${HOSTNAME_VALUE:=null}"
+  : "${USERNAME_VALUE:=null}"
+  : "${TIMEZONE_VALUE:=UTC}"
+  : "${USER_PASSWORD:=}"
+  : "${ROOT_PASSWORD:=}"
+  : "${ENABLE_THIRD_PARTY:=false}"
+
+  [[ "$CONFIRM_DEVICE" == "$DISK" ]] || \
+    die "confirm_destroy_device must repeat the exact target device path"
+  [[ -b "$DISK" ]] || die "not a block device: $DISK"
+  valid_hostname "$HOSTNAME_VALUE" || die "invalid hostname: $HOSTNAME_VALUE"
+  valid_username "$USERNAME_VALUE" || die "invalid username: $USERNAME_VALUE"
+  valid_timezone "$TIMEZONE_VALUE" || die "invalid timezone: $TIMEZONE_VALUE"
+  [[ -n "$USER_PASSWORD" ]] || die "answer file must set user_password"
+
+  # Even unattended, the live medium and mounted disks are never valid targets.
+  local unsafe
+  unsafe="$(live_devices | sort -u)"
+  grep -qxF "$DISK" <<<"$unsafe" && die "$DISK is in use by the running system"
+  return 0
+}
+
 main() {
+  if [[ "${1:-}" == "--unattended" ]]; then
+    UNATTENDED=true
+    [[ -n "${2:-}" ]] || die "usage: null-install --unattended <answer-file>"
+  fi
+
   require_root
   require_deps
   install -dm755 "$(dirname "$LOG")"
@@ -376,6 +433,10 @@ main() {
 
   MICROCODE="$(detect_microcode)"
 
+  if $UNATTENDED; then
+    load_answers "$2"
+    printf 'Unattended installation to %s\n' "$DISK"
+  else
   dialog --backtitle "$BACKTITLE" --title "Null Linux Installer" --yesno "\
 \n  This installs Null Linux with a KDE Plasma desktop.\n\n\
   Current scope: UEFI, GPT, unencrypted ext4.\n\
@@ -391,6 +452,7 @@ main() {
   summary+="Root:      $([[ -n "$ROOT_PASSWORD" ]] && echo "password set" || echo "locked")\n"
   summary+="3rd-party repos: ${ENABLE_THIRD_PARTY}\n\nStart the installation?"
   dialog --backtitle "$BACKTITLE" --title "Review" --yesno "$summary" 17 62 || exit 0
+  fi
 
   step "Partitioning ${DISK}" do_partition
   step "Installing the base system (this takes a while)" do_pacstrap
@@ -400,14 +462,19 @@ main() {
 
   local problems
   if ! problems="$(verify_install)"; then
-    dialog --backtitle "$BACKTITLE" --title "Installation incomplete" --msgbox "\
+    if $UNATTENDED; then
+      printf 'VERIFICATION FAILED:\n%s\n' "$problems" >&2
+    else
+      dialog --backtitle "$BACKTITLE" --title "Installation incomplete" --msgbox "\
 The installation did not pass verification:\n\n${problems}\n\n\
 The target is left mounted at ${TARGET} for inspection.\n\
 Log: ${LOG}" 16 64
+    fi
     exit 1
   fi
 
   INSTALL_STARTED=false
+UNATTENDED=false
   umount -R "$TARGET" 2>/dev/null || true
 
   dialog --backtitle "$BACKTITLE" --title "Installation complete" --msgbox "\
