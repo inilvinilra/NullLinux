@@ -6,7 +6,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROFILE_DIR="$ROOT_DIR/iso"
+PROFILE_SRC="$ROOT_DIR/iso"
 # mkarchiso builds a chroot inside the work directory, and arch-chroot cannot
 # handle a path containing whitespace. Fall back to a safe location instead of
 # failing halfway through a long build.
@@ -37,7 +37,11 @@ mkdir -p "$WORK_DIR" "$OUT_DIR"
 printf 'Work directory:   %s\n' "$WORK_DIR"
 printf 'Output directory: %s\n' "$OUT_DIR"
 
-printf 'Building from %s\n' "$PROFILE_DIR"
+# iso/ holds live-only configuration; executables come from src/ at build time.
+PROFILE_DIR="${WORK_DIR%/}-profile"
+"$ROOT_DIR/tools/stage-profile.sh" "$PROFILE_DIR"
+
+printf 'Building from %s (staged from %s + src/)\n' "$PROFILE_DIR" "$PROFILE_SRC"
 mkarchiso -v -w "$WORK_DIR" -o "$OUT_DIR" "$PROFILE_DIR"
 
 ISO_FILE="$(find "$OUT_DIR" -maxdepth 1 -name '*.iso' -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2-)"

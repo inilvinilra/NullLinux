@@ -19,8 +19,8 @@ die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 command -v mkarchiso >/dev/null || die "mkarchiso not found (pacman -S archiso)"
 
 rm -rf "$PROFILE" "$WORK" "$OUT"
-mkdir -p "$PROFILE" "$OUT"
-cp -a "$ROOT_DIR/iso/." "$PROFILE/"
+mkdir -p "$OUT"
+"$ROOT_DIR/tools/stage-profile.sh" "$PROFILE"
 cp -a "$ROOT_DIR/tests/testiso/airootfs/." "$PROFILE/airootfs/"
 
 # Enable the service the way systemd would, without booting anything.

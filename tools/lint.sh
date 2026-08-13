@@ -161,17 +161,42 @@ if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' 2>/dev/null; t
 else
   skip "generator check needs python3 + PyYAML"
 fi
-for pair in \
-  "src/installer/null-install:iso/airootfs/usr/bin/null-install" \
-  "src/tools/null-setup/null-setup:iso/airootfs/usr/bin/null-setup" \
-  "src/tools/null-toolkit/null-toolkit:iso/airootfs/usr/bin/null-toolkit" \
-  "src/tools/null-setup/null-setup.desktop:iso/airootfs/usr/share/applications/null-setup.desktop"; do
-  a="${pair%%:*}"; b="${pair##*:}"
-  if [[ -f "$a" && -f "$b" ]] && ! diff -q "$a" "$b" >/dev/null; then
-    drift=$((drift + 1)); fail "drift: $a != $b"
+# Executables must exist once, in src/. The profile receives them at build time
+# via tools/stage-profile.sh, so there is nothing to keep in sync by hand.
+while IFS= read -r f; do
+  [[ -f "$f" ]] || continue
+  base="$(basename "$f")"
+  if find src -name "$base" -type f | grep -q .; then
+    drift=$((drift + 1))
+    fail "duplicate of a src/ file committed under iso/: $f"
   fi
-done
-[[ $drift -eq 0 ]] && pass "all mirrored copies are identical (they must be generated, not hand-synced)"
+done < <(find iso/airootfs/usr/bin iso/airootfs/usr/share/nulllinux/lib \
+              iso/airootfs/usr/share/nulllinux/installer -type f 2>/dev/null)
+
+[[ $drift -eq 0 ]] && pass "generated files current; no executable is committed twice"
+
+check "staged profile is complete"
+staged="$(mktemp -d)"
+if ./tools/stage-profile.sh "$staged" >/dev/null 2>&1; then
+  missing=()
+  for f in usr/bin/null-install usr/bin/null-toolkit usr/bin/null-setup \
+           usr/bin/null-setup-firstrun usr/bin/null-apply-branding usr/bin/null-repo \
+           usr/share/nulllinux/lib/nulllinux-pkg.sh \
+           usr/share/nulllinux/lib/nulllinux-validate.sh \
+           usr/share/nulllinux/installer/postinstall.sh \
+           usr/share/applications/null-setup.desktop \
+           etc/skel/.config/autostart/null-setup.desktop; do
+    [[ -e "$staged/airootfs/$f" ]] || missing+=("$f")
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    fail "staging leaves out: ${missing[*]}"
+  else
+    pass "staging produces a complete profile"
+  fi
+else
+  fail "tools/stage-profile.sh failed"
+fi
+rm -rf "$staged"
 
 # ── 8. Canonical project identity ─────────────────────────────────────────────
 check "canonical repository identity"

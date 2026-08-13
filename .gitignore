@@ -1,5 +1,5 @@
-out/
 work/
+out/
 *.iso
 *.iso.sha256
 *.log
