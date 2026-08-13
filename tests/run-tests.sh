@@ -225,6 +225,36 @@ is "dry-run left role state intact" "0" "$state_kept"
 run_tk info redteam; is "info runs without root" "0" "$?"
 is "info counts installed packages" "1" "$(grep -c '2 of 2 installed' "$TMP/out")"
 
+# ── privilege escalation ─────────────────────────────────────────────────────
+group "privileged pacman invocation"
+reset_world; make_role r1 a; repo_add a
+
+# A prefix must stay a separate argv element. Folding it into the command name
+# makes the shell search for a program literally called "sudo pacman".
+mkdir -p "$TMP/bin"
+cat > "$TMP/bin/fakesudo" <<'SUDO'
+#!/usr/bin/env bash
+echo "fakesudo:$1" >> "$NULL_TEST_DB.sudolog"
+exec "$@"
+SUDO
+chmod +x "$TMP/bin/fakesudo"
+
+rm -f "$TMP/db.sudolog"
+NULL_PACMAN_PREFIX="$TMP/bin/fakesudo" pkg_install a
+is "install through a prefix succeeds" "complete" "$(result_name $?)"
+is "the prefix actually ran" "1" "$(grep -c 'fakesudo:' "$TMP/db.sudolog" 2>/dev/null || echo 0)"
+is "the package really landed" "0" "$(pacman_q a; echo $?)"
+
+reset_world; make_role r1 a; repo_add a
+NULL_PACMAN_PREFIX="" pkg_install a
+is "install without a prefix still works" "complete" "$(result_name $?)"
+
+# Reads must not be escalated: querying the database needs no privilege.
+reset_world; make_role r1 a; repo_add a; db_add a
+rm -f "$TMP/db.sudolog"
+NULL_PACMAN_PREFIX="$TMP/bin/fakesudo" pacman_q a
+is "queries bypass the prefix" "0" "$(test -f "$TMP/db.sudolog" && echo 1 || echo 0)"
+
 # ── repository trust ─────────────────────────────────────────────────────────
 group "null-repo fingerprint handling"
 cp "$ROOT_DIR/iso/pacman.conf" "$TMP/pacman.conf"

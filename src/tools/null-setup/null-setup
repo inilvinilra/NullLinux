@@ -22,11 +22,10 @@ if [[ ${EUID} -ne 0 ]]; then
     clear; exit 1
   fi
 fi
-NULL_PACMAN_PRIV=("${SUDO[@]}" "$NULL_PACMAN")
-
-pkg_install_priv() {
-  NULL_PACMAN="${NULL_PACMAN_PRIV[*]}" pkg_install "$@"
-}
+# The engine escalates with a prefix; it must not be folded into the command name,
+# or the shell looks for a program literally called "sudo pacman".
+# shellcheck disable=SC2034  # read by pacman_write() in the sourced engine
+[[ ${#SUDO[@]} -gt 0 ]] && NULL_PACMAN_PREFIX="${SUDO[0]}"
 
 mark_first_run_done() {
   mkdir -p "$(dirname "$STATE")"
@@ -62,7 +61,7 @@ install_roles() {
 
     (
       printf 'Installing %s (%d packages)\n\n' "$(role_field "$role" name)" "${#pkgs[@]}"
-      pkg_install_priv "${pkgs[@]}"
+      pkg_install "${pkgs[@]}"
       printf '\nResult: %s\n' "$(result_name $?)"
     ) | dialog --backtitle "$BACKTITLE" --title "[$i/$n] $(role_field "$role" name)" \
         --programbox 24 78
@@ -156,7 +155,7 @@ menu_packages() {
   [[ ${#wanted[@]} -eq 0 ]] && {
     dialog --backtitle "$BACKTITLE" --msgbox "Everything selected is already installed." 6 52; return; }
 
-  ( pkg_install_priv "${wanted[@]}"; printf '\nResult: %s\n' "$(result_name $?)" ) \
+  ( pkg_install "${wanted[@]}"; printf '\nResult: %s\n' "$(result_name $?)" ) \
     | dialog --backtitle "$BACKTITLE" --title "Installing ${#wanted[@]} package(s)" --programbox 24 78
 
   local failed=()
@@ -185,7 +184,7 @@ view_roles() {
 run_update() {
   dialog --backtitle "$BACKTITLE" --title "Update" \
     --yesno "Synchronise and upgrade the whole system?\n\nThis is a full upgrade, never a partial one." 9 56 || return
-  ( "${SUDO[@]}" "$NULL_PACMAN" -Syu --noconfirm 2>&1 ) \
+  ( pacman_write -Syu --noconfirm 2>&1 ) \
     | dialog --backtitle "$BACKTITLE" --title "Upgrading" --programbox 24 78
   dialog --backtitle "$BACKTITLE" --msgbox "Upgrade finished. Check the log above for details." 7 54
 }

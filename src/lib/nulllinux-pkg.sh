@@ -22,14 +22,27 @@ NULL_RESULT_UNCHANGED=13
 NULL_ROLE_DIR="${NULL_ROLE_DIR:-/usr/share/nulllinux/roles}"
 NULL_STATE_DIR="${NULL_STATE_DIR:-/var/lib/nulllinux/roles}"
 NULL_PACMAN="${NULL_PACMAN:-pacman}"
+# Privilege escalation is a prefix, never part of the command name: joining them
+# into one string makes the shell look for a command called "sudo pacman".
+NULL_PACMAN_PREFIX="${NULL_PACMAN_PREFIX:-}"
 
 # Populated by pkg_install.
 PKG_INSTALLED=()
 PKG_ALREADY=()
 PKG_FAILED=()
 
-pacman_q() { "$NULL_PACMAN" -Qq "$1" >/dev/null 2>&1; }
-pacman_si() { "$NULL_PACMAN" -Si "$1" >/dev/null 2>&1; }
+# Queries never need privilege; only transactions do.
+pacman_read() { "$NULL_PACMAN" "$@"; }
+pacman_write() {
+  if [[ -n "$NULL_PACMAN_PREFIX" ]]; then
+    "$NULL_PACMAN_PREFIX" "$NULL_PACMAN" "$@"
+  else
+    "$NULL_PACMAN" "$@"
+  fi
+}
+
+pacman_q() { pacman_read -Qq "$1" >/dev/null 2>&1; }
+pacman_si() { pacman_read -Si "$1" >/dev/null 2>&1; }
 
 # ── role data ────────────────────────────────────────────────────────────────
 
@@ -129,7 +142,7 @@ state_clear() { rm -f "$(state_file "$1")"; }
 
 # Deliberate, complete synchronisation. Never call plain -Sy.
 pkg_sync_upgrade() {
-  "$NULL_PACMAN" -Syu --noconfirm
+  pacman_write -Syu --noconfirm
 }
 
 # pkg_install <pkg...>
@@ -150,7 +163,7 @@ pkg_install() {
 
   # One transaction for everything that resolves; then retry the remainder
   # individually so a single bad name cannot mask the rest.
-  "$NULL_PACMAN" -S --needed --noconfirm "${missing[@]}" >&2 || true
+  pacman_write -S --needed --noconfirm "${missing[@]}" >&2 || true
 
   local -a still=()
   for pkg in "${missing[@]}"; do
@@ -158,7 +171,7 @@ pkg_install() {
   done
 
   for pkg in "${still[@]}"; do
-    "$NULL_PACMAN" -S --needed --noconfirm "$pkg" >&2 || true
+    pacman_write -S --needed --noconfirm "$pkg" >&2 || true
     if pacman_q "$pkg"; then
       PKG_INSTALLED+=("$pkg")
     else

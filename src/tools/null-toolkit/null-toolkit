@@ -161,7 +161,7 @@ cmd_remove() {
   local answer; read -r answer
   [[ "$answer" == [yY] ]] || { say "Canceled."; exit "$NULL_RESULT_CANCELED"; }
 
-  if "$NULL_PACMAN" -Rns --noconfirm "${removable[@]}"; then
+  if pacman_write -Rns --noconfirm "${removable[@]}"; then
     state_clear "$role"
     printf '%sRole %s removed.%s\n' "$GREEN" "$role" "$NC"
     exit "$NULL_RESULT_COMPLETE"
