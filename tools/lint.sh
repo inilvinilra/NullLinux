@@ -23,8 +23,12 @@ current_check=""
 scan() {
   grep -rn -e "$1" --include='*' . \
     --exclude-dir=work --exclude-dir=out --exclude-dir=.git 2>/dev/null \
-    | grep -v '^\./tools/lint\.sh:\|^\./docs/audit-baseline\.md:' || true
+    | grep -v '^\./tools/lint\.sh:' || true
 }
+
+# Code rules apply to code. Documentation has to be able to name the practices
+# it tells people to avoid.
+scan_code() { scan "$1" | grep -v '\.md:' || true; }
 
 check() {
   current_check="$1"
@@ -171,7 +175,7 @@ done
 
 # ── 8. Canonical project identity ─────────────────────────────────────────────
 check "canonical repository identity"
-stale="$(scan 'xredjhon' | cut -d: -f1 | sort -u)"
+stale="$(scan_code 'xredjhon' | cut -d: -f1 | sort -u)"
 if [[ -n "$stale" ]]; then
   fail "stale repository owner in $(wc -l <<<"$stale") files (expected ${CANONICAL_REPO})"
   printf '       %s\n' $stale
@@ -181,7 +185,7 @@ fi
 
 # ── 9. No partial upgrades at runtime ─────────────────────────────────────────
 check "no pacman -Sy partial upgrades"
-hits="$(scan 'pacman -Sy\([^u]\|$\)' | grep -v '^\./docs/')"
+hits="$(scan_code 'pacman -Sy\([^u]\|$\)')"
 if [[ -n "$hits" ]]; then
   fail "partial-upgrade calls found:"
   printf '       %s\n' "$hits"
@@ -191,7 +195,7 @@ fi
 
 # ── 10. No unverified remote code execution ───────────────────────────────────
 check "no curl | bash"
-hits="$(scan 'curl[^|]*|[[:space:]]*\(sudo[[:space:]]*\)\?bash\|wget[^|]*|[[:space:]]*\(sudo[[:space:]]*\)\?bash')"
+hits="$(scan_code 'curl[^|]*|[[:space:]]*\(sudo[[:space:]]*\)\?bash\|wget[^|]*|[[:space:]]*\(sudo[[:space:]]*\)\?bash')"
 if [[ -n "$hits" ]]; then
   fail "unverified remote script execution:"
   printf '       %s\n' "$hits"
@@ -201,7 +205,7 @@ fi
 
 # ── 11. No untracked language-manager system installs ─────────────────────────
 check "no unpinned language-manager fallback"
-hits="$(scan '--break-system-packages\|go install [^ ]*@latest\|cargo install [^-]')"
+hits="$(scan_code '--break-system-packages\|go install [^ ]*@latest\|cargo install [^-]')"
 if [[ -n "$hits" ]]; then
   fail "unpinned/untracked language-manager installs:"
   printf '       %s\n' "$hits"
