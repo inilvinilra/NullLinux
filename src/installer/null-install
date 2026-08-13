@@ -69,6 +69,11 @@ require_deps() {
 
 require_uefi() {
   [[ -d /sys/firmware/efi/efivars ]] && return 0
+  # Unattended runs have no one to read a dialog, and a blocking one would hang
+  # the machine until the harness gives up with no reason recorded.
+  if $UNATTENDED; then
+    die "this installer supports UEFI only; the machine booted in legacy BIOS mode"
+  fi
   dialog --backtitle "$BACKTITLE" --title "UEFI required" --msgbox "\
 This installer supports UEFI systems only.\n\n\
 The machine was booted in legacy BIOS mode. Null Linux does not yet\n\
