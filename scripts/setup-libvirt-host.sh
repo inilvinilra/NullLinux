@@ -70,7 +70,9 @@ EOM
 }
 
 echo "==> Packages..."
-run_sudo env LC_ALL=C pacman -Sy --needed --noconfirm \
+# Full upgrade, never -Sy alone: installing against a refreshed database
+# without upgrading produces a partial upgrade on a rolling release.
+run_sudo env LC_ALL=C pacman -Syu --needed --noconfirm \
   libvirt \
   virt-manager \
   virt-viewer \

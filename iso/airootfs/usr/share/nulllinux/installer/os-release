@@ -1,0 +1,11 @@
+NAME="Null Linux"
+PRETTY_NAME="Null Linux"
+ID=nulllinux
+ID_LIKE=arch
+BUILD_ID=0.2.0-alpha
+ANSI_COLOR="0;37"
+HOME_URL="https://github.com/inilvinilra/NullLinux"
+DOCUMENTATION_URL="https://github.com/inilvinilra/NullLinux/tree/main/docs"
+SUPPORT_URL="https://github.com/inilvinilra/NullLinux/issues"
+BUG_REPORT_URL="https://github.com/inilvinilra/NullLinux/issues"
+LOGO=nulllinux

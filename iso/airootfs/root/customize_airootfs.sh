@@ -39,6 +39,8 @@ cp -a /etc/skel/. /home/null/
 rm -f /home/null/.dmrc /home/null/.xsession
 chown -R null:null /home/null
 
+# LIVE MEDIUM ONLY. The installer never copies this file to a target system;
+# installed systems get a password-prompting wheel policy instead.
 cat > /etc/sudoers.d/10-null <<'EOF'
 null ALL=(ALL) NOPASSWD: ALL
 EOF
@@ -57,6 +59,8 @@ ufw default allow outgoing
 ufw --force enable
 
 mkdir -p /etc/sddm.conf.d
+# LIVE MEDIUM ONLY. Session stays on X11 until the Wayland session has been
+# verified by an automated QEMU boot test; see docs/audit-baseline.md.
 cat > /etc/sddm.conf.d/autologin.conf <<'SDDM'
 [Autologin]
 User=null
@@ -86,6 +90,7 @@ ldconfig
 touch /etc/.updated /var/.updated
 
 mkdir -p /etc/sysctl.d
+# Performance tuning only. These are not security controls.
 cat > /etc/sysctl.d/99-nulllinux-perf.conf <<'SYSCTL'
 vm.swappiness=10
 vm.vfs_cache_pressure=50
@@ -98,12 +103,10 @@ cat > /etc/tmpfiles.d/tmp.conf <<'TMPFILES'
 q /tmp 1777 root root 7d
 TMPFILES
 
-if [[ -d /usr/share/nulllinux/desktop-entries ]]; then
-  for f in /usr/share/nulllinux/desktop-entries/*.desktop; do
-    [[ -f "$f" ]] || continue
-    cp -f "$f" /usr/share/applications/"nulllinux-$(basename "$f")"
-  done
-  update-desktop-database /usr/share/applications 2>/dev/null || true
+# Same sync the alpm hook runs after every transaction: entries appear only for
+# tools that are actually installed.
+if [[ -x /usr/share/nulllinux/hooks/update-desktop-entries.sh ]]; then
+  /usr/share/nulllinux/hooks/update-desktop-entries.sh || true
 fi
 
 xdg-user-dirs-update

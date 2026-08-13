@@ -1,473 +1,230 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
-VERSION="1.0.0"
-ROLES_DIR="/etc/nulllinux/roles.d"
-CONFIG_DIR="/etc/nulllinux/roles"
+VERSION="2.0.0"
+LIB_DIR="${NULL_LIB_DIR:-/usr/share/nulllinux/lib}"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-NC='\033[0m'
+# shellcheck source=../../lib/nulllinux-pkg.sh
+source "$LIB_DIR/nulllinux-pkg.sh"
 
-detect_aur_helper() {
-  for helper in paru yay pikaur; do
-    if command -v "$helper" &>/dev/null; then
-      echo "$helper"
-      return
-    fi
-  done
-  echo ""
+RED=''; GREEN=''; YELLOW=''; CYAN=''; BOLD=''; NC=''
+if [[ -t 1 ]]; then
+  RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[0;33m'
+  CYAN=$'\033[0;36m'; BOLD=$'\033[1m'; NC=$'\033[0m'
+fi
+
+say()  { printf '%s\n' "$*"; }
+warn() { printf '%s%s%s\n' "$YELLOW" "$*" "$NC" >&2; }
+err()  { printf '%s%s%s\n' "$RED" "$*" "$NC" >&2; }
+
+require_root() {
+  [[ ${EUID} -eq 0 ]] && return 0
+  err "Root required: sudo null-toolkit $*"
+  exit 1
 }
 
-lang_fallback_install() {
-  local pkg="$1"
-  local pip_pkg="$pkg"
-  local ok=false
+require_role() {
+  role_exists "$1" && return 0
+  err "Unknown role: $1"
+  say "Run 'null-toolkit list' to see available roles." >&2
+  exit 1
+}
 
-  case "$pkg" in
-    python-web3) pip_pkg="web3" ;;
-    python-eth-utils) pip_pkg="eth-utils" ;;
+status_label() {
+  case "$1" in
+    metapackage) printf '%sinstalled%s (metapackage)' "$GREEN" "$NC" ;;
+    installed)   printf '%sinstalled%s' "$GREEN" "$NC" ;;
+    satisfied)   printf '%ssatisfied%s' "$GREEN" "$NC" ;;
+    degraded)    printf '%sdegraded%s' "$YELLOW" "$NC" ;;
+    partial)     printf '%spartial%s' "$YELLOW" "$NC" ;;
+    *)           printf '%savailable%s' "$CYAN" "$NC" ;;
   esac
-
-  case "$pkg" in
-    certipy|netexec|hashid|patator|crowbar|brutespray|adidnsdump|ldeep|sprayhound)
-      if command -v python3 >/dev/null 2>&1; then
-        python3 -m pip install --break-system-packages "$pip_pkg" 2>&1 && ok=true
-      fi
-      ;;
-    python-web3|python-eth-utils)
-      if command -v python3 >/dev/null 2>&1; then
-        python3 -m pip install --break-system-packages "$pip_pkg" 2>&1 && ok=true
-      fi
-      ;;
-    kerbrute)
-      if command -v go >/dev/null 2>&1; then
-        GOBIN=/usr/local/bin go install github.com/ropnop/kerbrute@latest 2>&1 && ok=true
-      fi
-      ;;
-    ligolo-ng)
-      if command -v go >/dev/null 2>&1; then
-        GOBIN=/usr/local/bin go install github.com/nicocha30/ligolo-ng/cmd/proxy@latest 2>&1 && ok=true
-        GOBIN=/usr/local/bin go install github.com/nicocha30/ligolo-ng/cmd/agent@latest 2>&1 || true
-      fi
-      ;;
-    go-windapsearch)
-      if command -v go >/dev/null 2>&1; then
-        GOBIN=/usr/local/bin go install github.com/ropnop/go-windapsearch@latest 2>&1 && ok=true
-      fi
-      ;;
-    sliver)
-      if command -v go >/dev/null 2>&1; then
-        GOBIN=/usr/local/bin go install github.com/BishopFox/sliver/client@latest 2>&1 && ok=true
-      fi
-      ;;
-    rustscan|feroxbuster)
-      if command -v cargo >/dev/null 2>&1; then
-        cargo install --root /usr/local "$pkg" 2>&1 && ok=true
-      fi
-      ;;
-    *)
-      ;;
-  esac
-
-  $ok && echo -e "${GREEN}Language fallback installed:${NC} $pkg" && return 0
-  return 1
 }
 
-get_available_roles() {
-  local roles=()
-  for yml in "$ROLES_DIR"/*.yml; do
-    [[ -f "$yml" ]] || continue
-    roles+=("$(basename "$yml" .yml)")
-  done
-  echo "${roles[@]}"
+cmd_list() {
+  printf '%s%-14s %-24s %6s  %s%s\n' "$BOLD" "ROLE" "STATUS" "PKGS" "NAME" "$NC"
+  local role count
+  while IFS= read -r role; do
+    count="$(role_packages "$role" | wc -l)"
+    printf '%-14s %-24b %6s  %s\n' \
+      "$role" "$(status_label "$(role_status "$role")")" "$count" "$(role_field "$role" name)"
+  done < <(role_ids)
 }
 
-usage() {
-  local roles
-  roles="$(get_available_roles)"
-  local aur_helper
-  aur_helper="$(detect_aur_helper)"
+cmd_info() {
+  local role="$1"
+  require_role "$role"
+  printf '%s%s (%s)%s\n' "$BOLD" "$(role_field "$role" name)" "$role" "$NC"
+  printf 'Status: %b\n\n' "$(status_label "$(role_status "$role")")"
 
-  cat <<EOF
-${BOLD}null-toolkit${NC} v${VERSION} — Null Linux Role Manager
-
-${BOLD}USAGE${NC}
-  null-toolkit <command> [role]
-
-${BOLD}COMMANDS${NC}
-  install <role>    Install a role and its packages
-  remove  <role>    Remove a role's packages
-  list              List all roles and status
-  info    <role>    Show packages in a role
-  update            Update all installed roles
-  search  <term>    Search packages across all roles
-
-${BOLD}AVAILABLE ROLES${NC}
-EOF
-
-  for role in $roles; do
-    local name pkg_count
-    name="$(grep '^name:' "$ROLES_DIR/${role}.yml" 2>/dev/null | cut -d: -f2- | sed 's/^ *//')"
-    pkg_count="$(grep -c '^  - ' "$ROLES_DIR/${role}.yml" 2>/dev/null || echo 0)"
-    printf "  %-16s %s (%d packages)\n" "$role" "$name" "$pkg_count"
-  done
-
-  cat <<EOF
-
-${BOLD}AUR HELPER${NC}
-  ${aur_helper:-none detected (install paru or yay)}
-
-${BOLD}EXAMPLES${NC}
-  sudo null-toolkit install redteam
-  null-toolkit list
-  null-toolkit info network
-  null-toolkit search nmap
-EOF
-}
-
-check_root() {
-  if [[ "${EUID}" -ne 0 ]]; then
-    echo -e "${RED}Error: Root required.${NC} Run: sudo null-toolkit $*" >&2
-    exit 1
-  fi
-}
-
-is_valid_role() {
-  [[ -f "$ROLES_DIR/$1.yml" ]]
-}
-
-is_installed() {
-  [[ -f "$CONFIG_DIR/$1.installed" ]]
-}
-
-get_role_packages() {
-  local yml="$ROLES_DIR/$1.yml"
-  [[ -f "$yml" ]] && grep '^  - ' "$yml" | sed 's/^  - //'
-}
-
-get_role_name() {
-  grep '^name:' "$ROLES_DIR/$1.yml" 2>/dev/null | cut -d: -f2- | sed 's/^ *//'
-}
-
-install_packages() {
-  local -a pkg_array=("$@")
-  local aur_helper
-  aur_helper="$(detect_aur_helper)"
-  local refreshed=false
-  local -a missing_pkgs=()
-  local -a unresolved_pkgs=()
-
-  mapfile -t missing_pkgs < <(
-    for pkg in "${pkg_array[@]}"; do
-      pacman -Qi "$pkg" &>/dev/null || echo "$pkg"
-    done
-  )
-
-  if [[ ${#missing_pkgs[@]} -eq 0 ]]; then
-    echo -e "${GREEN}All selected packages are already installed.${NC}"
-    return 0
-  fi
-
-  if pacman -S --needed --noconfirm "${missing_pkgs[@]}" 2>&1; then
-    echo -e "${GREEN}Bulk repo install complete.${NC}"
-    return 0
-  fi
-
-  if ! $refreshed; then
-    pacman -Sy --noconfirm 2>&1 || true
-    refreshed=true
-    pacman -S --needed --noconfirm "${missing_pkgs[@]}" 2>&1 || true
-  fi
-
-  for pkg in "${missing_pkgs[@]}"; do
-    if pacman -Qi "$pkg" &>/dev/null; then
-      echo -e "${GREEN}Already installed:${NC} $pkg"
-      continue
-    fi
-
-    # First try Arch/BlackArch/Chaotic repos.
-    if pacman -S --needed --noconfirm "$pkg" 2>&1; then
-      echo -e "${GREEN}Repo installed:${NC} $pkg"
-      continue
-    fi
-
-    # Refresh DB once, retry.
-    if ! $refreshed; then
-      pacman -Sy --noconfirm 2>&1 || true
-      refreshed=true
-      if pacman -S --needed --noconfirm "$pkg" 2>&1; then
-        echo -e "${GREEN}Repo installed after refresh:${NC} $pkg"
-        continue
-      fi
-    fi
-
-    # Repo failed -> AUR fallback.
-    if [[ -n "$aur_helper" ]]; then
-      local real_user="${SUDO_USER:-$USER}"
-      case "$aur_helper" in
-        paru)
-          su - "$real_user" -c "$aur_helper -S --needed --noconfirm --skipreview --removemake $pkg" 2>/dev/null || \
-            echo -e "${YELLOW}AUR skip:${NC} $pkg"
-          ;;
-        yay)
-          su - "$real_user" -c "$aur_helper -S --needed --noconfirm --answerclean None --answerdiff None --removemake $pkg" 2>/dev/null || \
-            echo -e "${YELLOW}AUR skip:${NC} $pkg"
-          ;;
-        pikaur)
-          su - "$real_user" -c "$aur_helper -S --needed --noconfirm $pkg" 2>/dev/null || \
-            echo -e "${YELLOW}AUR skip:${NC} $pkg"
-          ;;
-      esac
+  local pkg present=0 total=0
+  while IFS= read -r pkg; do
+    total=$((total + 1))
+    if pacman_q "$pkg"; then
+      present=$((present + 1)); printf '  %s●%s %s\n' "$GREEN" "$NC" "$pkg"
+    elif pacman_si "$pkg"; then
+      printf '  %s○%s %s [repo]\n' "$YELLOW" "$NC" "$pkg"
     else
-      echo -e "${YELLOW}Skipped (no repo/AUR helper):${NC} $pkg"
+      printf '  %s○%s %s %s[not in configured repositories]%s\n' "$YELLOW" "$NC" "$pkg" "$RED" "$NC"
     fi
+  done < <(role_packages "$role")
+  printf '\n%d of %d installed\n' "$present" "$total"
+}
 
-    if lang_fallback_install "$pkg"; then
-      continue
-    fi
-
-    unresolved_pkgs+=("$pkg")
-  done
-
-  if [[ ${#unresolved_pkgs[@]} -gt 0 ]]; then
-    echo -e "${YELLOW}Unresolved packages (${#unresolved_pkgs[@]}):${NC}"
-    printf '  - %s\n' "${unresolved_pkgs[@]}"
+report() {
+  local result="$1" role="$2"
+  printf '\n%sResult: %s%s\n' "$BOLD" "$(result_name "$result")" "$NC"
+  [[ ${#PKG_INSTALLED[@]} -gt 0 ]] && printf '  installed (%d): %s\n' "${#PKG_INSTALLED[@]}" "${PKG_INSTALLED[*]}"
+  [[ ${#PKG_ALREADY[@]}   -gt 0 ]] && printf '  already present (%d)\n' "${#PKG_ALREADY[@]}"
+  if [[ ${#PKG_FAILED[@]} -gt 0 ]]; then
+    printf '  %sunresolved (%d):%s\n' "$RED" "${#PKG_FAILED[@]}" "$NC"
+    printf '    - %s\n' "${PKG_FAILED[@]}"
+    printf '\n%sRole "%s" is NOT marked installed because required packages failed.%s\n' \
+      "$RED" "$role" "$NC"
   fi
 }
 
 cmd_install() {
   local role="$1"
-  check_root install "$role"
+  require_root install "$role"
+  require_role "$role"
 
-  if ! is_valid_role "$role"; then
-    echo -e "${RED}Unknown role: ${role}${NC}" >&2
-    echo "Run 'null-toolkit list' to see available roles." >&2
-    exit 1
+  local status
+  status="$(role_status "$role")"
+  if [[ "$status" == metapackage ]]; then
+    warn "Role '$role' is provided by the metapackage nulllinux-$role; nothing to do."
+    exit "$NULL_RESULT_UNCHANGED"
   fi
 
-  if is_installed "$role"; then
-    echo -e "${YELLOW}Role '${role}' already installed. Use 'null-toolkit update' to refresh.${NC}"
-    exit 0
-  fi
+  local -a pkgs=()
+  mapfile -t pkgs < <(role_packages "$role")
+  printf '%s%sInstalling %s (%d packages)%s\n\n' "$CYAN" "$BOLD" "$(role_field "$role" name)" "${#pkgs[@]}" "$NC"
 
-  local name
-  name="$(get_role_name "$role")"
-  echo -e "${CYAN}${BOLD}Installing: ${name} (${role})${NC}"
-  echo ""
+  pkg_install "${pkgs[@]}"
+  local result=$?
+  report "$result" "$role"
 
-  local packages
-  packages="$(get_role_packages "$role")"
-  local -a pkg_array
-  mapfile -t pkg_array <<< "$packages"
-
-  echo -e "${BOLD}Packages (${#pkg_array[@]}):${NC}"
-  printf '  %s\n' "${pkg_array[@]}"
-  echo ""
-
-  install_packages "${pkg_array[@]}"
-
-  mkdir -p "$CONFIG_DIR"
-  date -Iseconds > "$CONFIG_DIR/${role}.installed"
-
-  echo ""
-  echo -e "${GREEN}${BOLD}Role '${role}' installed successfully.${NC}"
+  case "$result" in
+    "$NULL_RESULT_COMPLETE" | "$NULL_RESULT_PARTIAL")
+      state_write "$role" "${PKG_INSTALLED[@]}"
+      ;;
+  esac
+  exit "$result"
 }
 
 cmd_remove() {
-  local role="$1"
-  check_root remove "$role"
+  local role="$1" dry=false
+  [[ "${2:-}" == "--dry-run" ]] && dry=true
+  $dry || require_root remove "$role"
+  require_role "$role"
 
-  if ! is_valid_role "$role"; then
-    echo -e "${RED}Unknown role: ${role}${NC}" >&2
+  if ! role_is_active "$role"; then
+    warn "Role '$role' is not installed."
+    exit "$NULL_RESULT_UNCHANGED"
+  fi
+
+  if pacman_q "nulllinux-${role}"; then
+    err "Role '$role' was installed as a metapackage."
+    say "Remove it with: pacman -Rs nulllinux-${role}" >&2
     exit 1
   fi
 
-  if ! is_installed "$role"; then
-    echo -e "${YELLOW}Role '${role}' is not installed.${NC}"
+  local -a removable=() kept=()
+  mapfile -t removable < <(role_removable "$role")
+  mapfile -t kept < <(role_kept_shared "$role")
+
+  printf '%s%sRemoval plan for %s%s\n\n' "$CYAN" "$BOLD" "$role" "$NC"
+  if [[ ${#removable[@]} -gt 0 ]]; then
+    printf '  will remove (%d):\n' "${#removable[@]}"
+    printf '    - %s\n' "${removable[@]}"
+  else
+    printf '  will remove: nothing\n'
+  fi
+  if [[ ${#kept[@]} -gt 0 ]]; then
+    printf '\n  %skept — required by another installed role (%d):%s\n' "$GREEN" "${#kept[@]}" "$NC"
+    printf '    - %s\n' "${kept[@]}"
+  fi
+  printf '\n  kept — installed outside this role or not owned by null-toolkit\n'
+
+  if $dry; then
+    printf '\n(dry run: nothing was changed)\n'
     exit 0
   fi
 
-  echo -e "${CYAN}${BOLD}Removing role: ${role}${NC}"
-
-  local packages
-  packages="$(get_role_packages "$role")"
-  local -a pkg_array
-  mapfile -t pkg_array <<< "$packages"
-
-  pacman -Rns --noconfirm "${pkg_array[@]}" 2>/dev/null || \
-    echo -e "${YELLOW}Some packages kept (dependencies of other roles).${NC}"
-
-  rm -f "$CONFIG_DIR/${role}.installed"
-  echo -e "${GREEN}Role '${role}' removed.${NC}"
-}
-
-cmd_list() {
-  echo -e "${BOLD}Null Linux Roles${NC}"
-  echo ""
-  printf "  ${BOLD}%-16s %-12s %-6s %s${NC}\n" "ROLE" "STATUS" "PKGS" "DESCRIPTION"
-  echo "  ────────────────────────────────────────────────────────────────────"
-
-  for yml in "$ROLES_DIR"/*.yml; do
-    [[ -f "$yml" ]] || continue
-    local role
-    role="$(basename "$yml" .yml)"
-    local name pkg_count status
-    name="$(get_role_name "$role")"
-    pkg_count="$(grep -c '^  - ' "$yml" || echo 0)"
-
-    if is_installed "$role"; then
-      status="${GREEN}installed${NC}"
-    else
-      status="${YELLOW}available${NC}"
-    fi
-    printf "  %-16s ${status}  %-6s %s\n" "$role" "$pkg_count" "$name"
-  done
-
-  echo ""
-  local total
-  total="$(grep '^  - ' "$ROLES_DIR"/*.yml 2>/dev/null | sed 's/^.*:  - //' | sort -u | wc -l)"
-  echo -e "  ${BOLD}Total unique packages: ${total}${NC}"
-
-  local aur_helper
-  aur_helper="$(detect_aur_helper)"
-  echo -e "  ${BOLD}AUR helper: ${aur_helper:-none}${NC}"
-  echo ""
-}
-
-cmd_info() {
-  local role="$1"
-  if ! is_valid_role "$role"; then
-    echo -e "${RED}Unknown role: ${role}${NC}" >&2
-    exit 1
+  if [[ ${#removable[@]} -eq 0 ]]; then
+    state_clear "$role"
+    say "Role state cleared; no packages needed removing."
+    exit "$NULL_RESULT_COMPLETE"
   fi
 
-  local name
-  name="$(get_role_name "$role")"
-  echo -e "${BOLD}${name} (${role})${NC}"
+  printf '\nRemove these %d package(s)? [y/N] ' "${#removable[@]}"
+  local answer; read -r answer
+  [[ "$answer" == [yY] ]] || { say "Canceled."; exit "$NULL_RESULT_CANCELED"; }
 
-  if is_installed "$role"; then
-    echo -e "Status: ${GREEN}installed${NC} ($(cat "$CONFIG_DIR/${role}.installed" 2>/dev/null))"
-  else
-    echo -e "Status: ${YELLOW}available${NC}"
+  if "$NULL_PACMAN" -Rns --noconfirm "${removable[@]}"; then
+    state_clear "$role"
+    printf '%sRole %s removed.%s\n' "$GREEN" "$role" "$NC"
+    exit "$NULL_RESULT_COMPLETE"
   fi
-  echo ""
-  echo -e "${BOLD}Packages:${NC}"
-
-  local packages
-  packages="$(get_role_packages "$role")"
-  local installed=0 total=0
-  while IFS= read -r pkg; do
-    total=$((total + 1))
-    if pacman -Qi "$pkg" &>/dev/null; then
-      echo -e "  ${GREEN}●${NC} $pkg"
-      installed=$((installed + 1))
-    elif pacman -Si "$pkg" &>/dev/null; then
-      echo -e "  ${YELLOW}○${NC} $pkg ${CYAN}[repo]${NC}"
-    else
-      echo -e "  ${YELLOW}○${NC} $pkg ${YELLOW}[AUR]${NC}"
-    fi
-  done <<< "$packages"
-
-  echo ""
-  echo -e "${GREEN}●${NC} installed  ${YELLOW}○${NC} not installed  ($installed/$total)"
+  err "Removal transaction failed; role state left untouched."
+  exit "$NULL_RESULT_FAILED"
 }
 
 cmd_update() {
-  check_root update
-
-  local any_installed=false
-  for yml in "$ROLES_DIR"/*.yml; do
-    [[ -f "$yml" ]] || continue
-    local role
-    role="$(basename "$yml" .yml)"
-    if is_installed "$role"; then
-      any_installed=true
-      break
-    fi
-  done
-
-  if ! $any_installed; then
-    echo -e "${YELLOW}No roles installed. Use 'null-toolkit install <role>' first.${NC}"
-    exit 0
+  require_root update
+  say "Synchronising and upgrading the whole system (never a partial upgrade)..."
+  if pkg_sync_upgrade; then
+    printf '%sSystem up to date.%s\n' "$GREEN" "$NC"
+    exit "$NULL_RESULT_COMPLETE"
   fi
-
-  echo -e "${CYAN}${BOLD}Updating system and installed roles...${NC}"
-  pacman -Syu --noconfirm
-
-  local aur_helper
-  aur_helper="$(detect_aur_helper)"
-  if [[ -n "$aur_helper" ]]; then
-    echo -e "${CYAN}Updating AUR packages via ${aur_helper}...${NC}"
-    local real_user="${SUDO_USER:-$USER}"
-    su - "$real_user" -c "$aur_helper -Sua --noconfirm" 2>/dev/null || true
-  fi
-
-  echo -e "${GREEN}Update complete.${NC}"
+  err "Upgrade failed. The system may need attention before installing more packages."
+  exit "$NULL_RESULT_FAILED"
 }
 
 cmd_search() {
-  local term="$1"
-  echo -e "${BOLD}Searching for '${term}' across all roles:${NC}"
-  echo ""
-
-  local found=false
-  for yml in "$ROLES_DIR"/*.yml; do
-    [[ -f "$yml" ]] || continue
-    local role matches
-    role="$(basename "$yml" .yml)"
-    matches="$(grep '^  - ' "$yml" | sed 's/^  - //' | grep -i "$term" || true)"
-    if [[ -n "$matches" ]]; then
+  local term="$1" role hit found=false
+  while IFS= read -r role; do
+    while IFS= read -r hit; do
+      [[ -n "$hit" ]] || continue
       found=true
-      local name
-      name="$(get_role_name "$role")"
-      echo -e "  ${CYAN}${role}${NC} (${name}):"
-      while IFS= read -r pkg; do
-        if pacman -Qi "$pkg" &>/dev/null; then
-          echo -e "    ${GREEN}●${NC} $pkg"
-        else
-          echo -e "    ${YELLOW}○${NC} $pkg"
-        fi
-      done <<< "$matches"
-      echo ""
-    fi
-  done
+      if pacman_q "$hit"; then
+        printf '  %s●%s %-28s %s\n' "$GREEN" "$NC" "$hit" "$role"
+      else
+        printf '  %s○%s %-28s %s\n' "$YELLOW" "$NC" "$hit" "$role"
+      fi
+    done < <(role_packages "$role" | grep -iF -- "$term" || true)
+  done < <(role_ids)
+  $found || say "No matches."
+}
 
-  if ! $found; then
-    echo -e "  ${YELLOW}No matches found.${NC}"
-  fi
+usage() {
+  cat <<EOF
+${BOLD}null-toolkit${NC} v${VERSION} — Null Linux role manager
+
+USAGE
+  null-toolkit <command> [role]
+
+COMMANDS
+  install <role>            Install a role's packages
+  remove  <role>            Remove a role (asks first; never removes shared packages)
+  remove  <role> --dry-run  Show exactly what removal would do
+  list                      List roles and their real status
+  info    <role>            Show per-package status for a role
+  update                    Full system synchronisation and upgrade
+  search  <term>            Find a package across roles
+
+EXIT STATUS
+  0 complete   10 partial   11 failed   12 canceled   13 unchanged
+EOF
 }
 
 case "${1:-}" in
-  install)
-    [[ -z "${2:-}" ]] && { echo "Usage: null-toolkit install <role>" >&2; exit 1; }
-    cmd_install "$2"
-    ;;
-  remove)
-    [[ -z "${2:-}" ]] && { echo "Usage: null-toolkit remove <role>" >&2; exit 1; }
-    cmd_remove "$2"
-    ;;
-  list)
-    cmd_list
-    ;;
-  info)
-    [[ -z "${2:-}" ]] && { echo "Usage: null-toolkit info <role>" >&2; exit 1; }
-    cmd_info "$2"
-    ;;
-  update)
-    cmd_update
-    ;;
-  search)
-    [[ -z "${2:-}" ]] && { echo "Usage: null-toolkit search <term>" >&2; exit 1; }
-    cmd_search "$2"
-    ;;
-  -v|--version)
-    echo "null-toolkit v${VERSION}"
-    ;;
-  *)
-    usage
-    ;;
+  install) [[ -n "${2:-}" ]] || { usage; exit 1; }; cmd_install "$2" ;;
+  remove)  [[ -n "${2:-}" ]] || { usage; exit 1; }; cmd_remove "$2" "${3:-}" ;;
+  list)    cmd_list ;;
+  info)    [[ -n "${2:-}" ]] || { usage; exit 1; }; cmd_info "$2" ;;
+  update)  cmd_update ;;
+  search)  [[ -n "${2:-}" ]] || { usage; exit 1; }; cmd_search "$2" ;;
+  -v | --version) say "null-toolkit v${VERSION}" ;;
+  *) usage ;;
 esac

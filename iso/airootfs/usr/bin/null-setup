@@ -1,463 +1,237 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
-VERSION="1.0.0"
-MARKER="$HOME/.config/nulllinux-setup-done"
-ROLES_DIR="/etc/nulllinux/roles.d"
+VERSION="2.0.0"
+LIB_DIR="${NULL_LIB_DIR:-/usr/share/nulllinux/lib}"
 BACKTITLE="Null Linux Setup v${VERSION}"
-LOG="/tmp/null-setup-$$.log"
+STATE="${XDG_CONFIG_HOME:-$HOME/.config}/nulllinux-setuprc"
 
-if ! command -v dialog >/dev/null 2>&1; then
-  echo "dialog not found. Install it: sudo pacman -S dialog"
-  exit 1
+# shellcheck source=../../lib/nulllinux-pkg.sh
+source "$LIB_DIR/nulllinux-pkg.sh"
+
+command -v dialog >/dev/null 2>&1 || { echo "dialog is required: pacman -S dialog"; exit 1; }
+
+# Package operations need root. Asking once, up front, is honest and keeps the
+# password prompt out of the progress window where it would be invisible.
+SUDO=()
+if [[ ${EUID} -ne 0 ]]; then
+  SUDO=(sudo)
+  if ! sudo -v 2>/dev/null; then
+    dialog --backtitle "$BACKTITLE" --msgbox \
+      "Administrator rights are required to install packages.\n\nRun 'null-setup' again and provide your password." 9 56
+    clear; exit 1
+  fi
 fi
+NULL_PACMAN_PRIV=("${SUDO[@]}" "$NULL_PACMAN")
 
-detect_aur_helper() {
-  for h in paru yay pikaur; do
-    command -v "$h" &>/dev/null && echo "$h" && return
-  done
-  echo ""
+pkg_install_priv() {
+  NULL_PACMAN="${NULL_PACMAN_PRIV[*]}" pkg_install "$@"
 }
 
-AUR_HELPER="$(detect_aur_helper)"
-
-lang_fallback_install() {
-  local pkg="$1"
-  local pip_pkg="$pkg"
-  local ok=false
-
-  case "$pkg" in
-    python-web3) pip_pkg="web3" ;;
-    python-eth-utils) pip_pkg="eth-utils" ;;
-  esac
-
-  case "$pkg" in
-    certipy|netexec|hashid|patator|crowbar|brutespray|adidnsdump|ldeep|sprayhound)
-      if command -v python3 >/dev/null 2>&1; then
-        if python3 -m pip install --user --break-system-packages "$pip_pkg" 2>&1; then
-          ok=true
-        fi
-      fi
-      ;;
-    python-web3|python-eth-utils)
-      if command -v python3 >/dev/null 2>&1; then
-        python3 -m pip install --user --break-system-packages "$pip_pkg" 2>&1 && ok=true
-      fi
-      ;;
-    kerbrute)
-      if command -v go >/dev/null 2>&1; then
-        go install github.com/ropnop/kerbrute@latest 2>&1 && ok=true
-      fi
-      ;;
-    ligolo-ng)
-      if command -v go >/dev/null 2>&1; then
-        go install github.com/nicocha30/ligolo-ng/cmd/proxy@latest 2>&1 && ok=true
-        go install github.com/nicocha30/ligolo-ng/cmd/agent@latest 2>&1 || true
-      fi
-      ;;
-    go-windapsearch)
-      if command -v go >/dev/null 2>&1; then
-        go install github.com/ropnop/go-windapsearch@latest 2>&1 && ok=true
-      fi
-      ;;
-    sliver)
-      if command -v go >/dev/null 2>&1; then
-        go install github.com/BishopFox/sliver/client@latest 2>&1 && ok=true
-      fi
-      ;;
-    rustscan|feroxbuster)
-      if command -v cargo >/dev/null 2>&1; then
-        cargo install "$pkg" 2>&1 && ok=true
-      fi
-      ;;
-    *)
-      ;;
-  esac
-
-  $ok && echo "Language fallback installed: $pkg" && return 0
-  return 1
+mark_first_run_done() {
+  mkdir -p "$(dirname "$STATE")"
+  printf '[General]\nFirstRunDone=true\n' > "$STATE"
 }
 
-pkg_install() {
-  local -a pkgs=("$@")
-  local refreshed=false
-  local -a missing_pkgs=()
-  local -a unresolved_pkgs=()
-
-  # Fast path: one transaction first, then only fallback for failures.
-  mapfile -t missing_pkgs < <(
-    for pkg in "${pkgs[@]}"; do
-      pacman -Qi "$pkg" &>/dev/null || echo "$pkg"
-    done
-  )
-
-  if [[ ${#missing_pkgs[@]} -eq 0 ]]; then
-    echo "All selected packages are already installed."
-    return 0
+summary_text() {
+  local result="$1"
+  local text="Result: $(result_name "$result")\n\n"
+  text+="Installed:        ${#PKG_INSTALLED[@]}\n"
+  text+="Already present:  ${#PKG_ALREADY[@]}\n"
+  text+="Unresolved:       ${#PKG_FAILED[@]}\n"
+  if [[ ${#PKG_FAILED[@]} -gt 0 ]]; then
+    text+="\nUnresolved packages:\n"
+    local p
+    for p in "${PKG_FAILED[@]}"; do text+="  - ${p}\n"; done
+    text+="\nThese are not installed. Nothing was marked complete."
   fi
+  printf '%b' "$text"
+}
 
-  if sudo pacman -S --needed --noconfirm "${missing_pkgs[@]}" 2>&1; then
-    echo "Bulk repo installation completed."
-    return 0
-  fi
+install_roles() {
+  local -a roles=("$@")
+  local role result overall=$NULL_RESULT_UNCHANGED
+  local -a all_failed=()
 
-  if ! $refreshed; then
-    sudo pacman -Sy --noconfirm 2>&1 || true
-    refreshed=true
-    sudo pacman -S --needed --noconfirm "${missing_pkgs[@]}" 2>&1 || true
-  fi
+  local n=${#roles[@]} i=0
+  for role in "${roles[@]}"; do
+    i=$((i + 1))
+    local -a pkgs=()
+    mapfile -t pkgs < <(role_packages "$role")
 
-  for pkg in "${missing_pkgs[@]}"; do
-    if pacman -Qi "$pkg" &>/dev/null; then
-      echo "Already installed: $pkg"
-      continue
-    fi
+    (
+      printf 'Installing %s (%d packages)\n\n' "$(role_field "$role" name)" "${#pkgs[@]}"
+      pkg_install_priv "${pkgs[@]}"
+      printf '\nResult: %s\n' "$(result_name $?)"
+    ) | dialog --backtitle "$BACKTITLE" --title "[$i/$n] $(role_field "$role" name)" \
+        --programbox 24 78
 
-    # Always try official/third-party repos first (Arch/BlackArch/Chaotic).
-    if sudo pacman -S --needed --noconfirm "$pkg" 2>&1; then
-      echo "Repo installed: $pkg"
-      continue
-    fi
+    # Re-derive the outcome from the package database rather than from the
+    # pipeline's exit status, which belongs to dialog.
+    local missing=()
+    local p
+    for p in "${pkgs[@]}"; do pacman_q "$p" || missing+=("$p"); done
 
-    # One-time DB refresh, then retry repo install once.
-    if ! $refreshed; then
-      sudo pacman -Sy --noconfirm 2>&1 || true
-      refreshed=true
-      if sudo pacman -S --needed --noconfirm "$pkg" 2>&1; then
-        echo "Repo installed after refresh: $pkg"
-        continue
-      fi
-    fi
-
-    # Fallback to AUR only if repo install failed.
-    if [[ -n "$AUR_HELPER" ]]; then
-      case "$AUR_HELPER" in
-        paru)
-          "$AUR_HELPER" -S --needed --noconfirm --skipreview --removemake "$pkg" 2>&1 || \
-            echo "AUR skip: $pkg"
-          ;;
-        yay)
-          "$AUR_HELPER" -S --needed --noconfirm --answerclean None --answerdiff None --removemake "$pkg" 2>&1 || \
-            echo "AUR skip: $pkg"
-          ;;
-        pikaur)
-          "$AUR_HELPER" -S --needed --noconfirm "$pkg" 2>&1 || \
-            echo "AUR skip: $pkg"
-          ;;
-      esac
+    if [[ ${#missing[@]} -eq 0 ]]; then
+      result=$NULL_RESULT_COMPLETE
+      "${SUDO[@]}" install -dm755 "$NULL_STATE_DIR" 2>/dev/null || true
+      printf 'role=%s\ninstalled_at=%s\n%s\n' "$role" "$(date -Iseconds)" \
+        "$(printf 'owned=%s\n' "${pkgs[@]}")" \
+        | "${SUDO[@]}" tee "$(state_file "$role")" >/dev/null
     else
-      echo "Skipped (not in repos and no AUR helper): $pkg"
+      result=$NULL_RESULT_PARTIAL
+      all_failed+=("${missing[@]}")
     fi
-
-    # Last fallback: language package managers for common Go/Python tools.
-    if lang_fallback_install "$pkg"; then
-      continue
-    fi
-
-    unresolved_pkgs+=("$pkg")
+    [[ $result -gt $overall ]] && overall=$result
   done
 
-  if [[ ${#unresolved_pkgs[@]} -gt 0 ]]; then
-    echo ""
-    echo "Unresolved packages (${#unresolved_pkgs[@]}):"
-    printf '  - %s\n' "${unresolved_pkgs[@]}"
+  if [[ ${#all_failed[@]} -gt 0 ]]; then
+    local text="Some packages could not be installed.\n\n"
+    local p
+    for p in "${all_failed[@]}"; do text+="  - ${p}\n"; done
+    text+="\nAffected roles were NOT marked complete."
+    dialog --backtitle "$BACKTITLE" --title "Incomplete" --msgbox "$text" 20 66
+  else
+    dialog --backtitle "$BACKTITLE" --title "Done" \
+      --msgbox "All selected roles installed and verified." 7 50
   fi
-}
-
-show_welcome() {
-  local aur_status="none"
-  [[ -n "$AUR_HELPER" ]] && aur_status="$AUR_HELPER"
-
-  local already_done=""
-  [[ -f "$MARKER" ]] && already_done="\n  (You have run this wizard before)"
-
-  dialog --backtitle "$BACKTITLE" --title " Welcome to Null Linux " \
-    --yes-label "Start Setup" --no-label "Exit" \
-    --yesno "\
-\n\
-  ███╗   ██╗██╗   ██╗██╗     ██╗\n\
-  ████╗  ██║██║   ██║██║     ██║\n\
-  ██╔██╗ ██║██║   ██║██║     ██║\n\
-  ██║╚██╗██║██║   ██║██║     ██║\n\
-  ██║ ╚████║╚██████╔╝███████╗███████╗\n\
-  ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚══════╝\n\
-         L I N U X\n\
-\n\
-  This wizard helps you install:\n\
-    • Security tools (500+ packages)\n\
-    • Development environments\n\
-    • Essential applications\n\
-    • Privacy & crypto tools\n\
-\n\
-  AUR helper: ${aur_status}\n\
-  Repos: Arch + BlackArch + Chaotic-AUR${already_done}\n\
-\n\
-  You can also run this anytime: null-setup" 28 56
-}
-
-menu_main() {
-  while true; do
-    local choice
-    choice="$(dialog --backtitle "$BACKTITLE" --title "Main Menu" \
-      --cancel-label "Exit" \
-      --menu "Choose an option:" 18 60 7 \
-      "1" "Install by Role (select categories)" \
-      "2" "Install by Package (pick individual tools)" \
-      "3" "Install ALL roles (full arsenal)" \
-      "4" "View installed roles" \
-      "5" "System info" \
-      "6" "Update system & packages" \
-      "7" "Exit" \
-      3>&1 1>&2 2>&3)" || break
-
-    case "$choice" in
-      1) menu_roles ;;
-      2) menu_packages ;;
-      3) install_all_roles ;;
-      4) view_installed ;;
-      5) show_sysinfo ;;
-      6) run_update ;;
-      7) break ;;
-    esac
-  done
 }
 
 menu_roles() {
-  local items=()
-  for yml in "$ROLES_DIR"/*.yml; do
-    [[ -f "$yml" ]] || continue
-    local role_id name pkg_count status_tag
-    role_id="$(basename "$yml" .yml)"
-    name="$(grep '^name:' "$yml" | head -1 | cut -d: -f2- | sed 's/^ *//')"
-    pkg_count="$(grep -c '^  - ' "$yml" || echo 0)"
-
-    if [[ -f "$HOME/.config/nulllinux-role-${role_id}" ]]; then
-      status_tag="on"
-    else
-      status_tag="off"
-    fi
-    items+=("$role_id" "${name} (${pkg_count} pkgs)" "$status_tag")
-  done
+  local -a items=()
+  local role
+  while IFS= read -r role; do
+    items+=("$role" "$(role_field "$role" name) ($(role_packages "$role" | wc -l) pkgs)" off)
+  done < <(role_ids)
 
   local count=$(( ${#items[@]} / 3 ))
-  [[ $count -eq 0 ]] && { dialog --backtitle "$BACKTITLE" --msgbox "No roles found in $ROLES_DIR" 6 50; return; }
+  [[ $count -eq 0 ]] && { dialog --backtitle "$BACKTITLE" --msgbox "No roles found in $NULL_ROLE_DIR" 6 56; return; }
 
   local selected
   selected="$(dialog --backtitle "$BACKTITLE" --title "Select Roles" \
-    --checklist "\nSpace = toggle, Enter = confirm\nAlready installed roles are pre-selected.\n" \
-    $(( count + 8 )) 72 "$count" \
-    "${items[@]}" \
-    3>&1 1>&2 2>&3)" || return
+    --checklist "\nSpace toggles, Enter confirms.\nPackages come from the repositories configured on this system.\n" \
+    $(( count + 9 )) 74 "$count" "${items[@]}" 3>&1 1>&2 2>&3)" || return
 
-  [[ -z "$selected" ]] && { dialog --backtitle "$BACKTITLE" --msgbox "No roles selected." 6 40; return; }
-
-  local total=0 current=0
-  for role in $selected; do total=$((total + 1)); done
-
-  for role in $selected; do
-    role="${role//\"/}"
-    current=$((current + 1))
-
-    if [[ -f "$HOME/.config/nulllinux-role-${role}" ]]; then
-      continue
-    fi
-
-    local name pkg_count
-    name="$(grep '^name:' "$ROLES_DIR/${role}.yml" 2>/dev/null | cut -d: -f2- | sed 's/^ *//')"
-    pkg_count="$(grep -c '^  - ' "$ROLES_DIR/${role}.yml" 2>/dev/null || echo 0)"
-
-    local -a pkgs
-    mapfile -t pkgs < <(grep '^  - ' "$ROLES_DIR/${role}.yml" | sed 's/^  - //')
-
-    (
-      pkg_install "${pkgs[@]}" 2>&1
-    ) | dialog --backtitle "$BACKTITLE" \
-        --title "[$current/$total] Installing: $name ($pkg_count pkgs)" \
-        --programbox 22 78
-
-    touch "$HOME/.config/nulllinux-role-${role}"
-  done
-
-  dialog --backtitle "$BACKTITLE" --title "Done" \
-    --msgbox "Installed $total role(s) successfully!" 6 45
+  [[ -z "$selected" ]] && return
+  local -a chosen=()
+  for role in $selected; do chosen+=("${role//\"/}"); done
+  install_roles "${chosen[@]}"
 }
 
 menu_packages() {
-  local role_choice
-  local role_items=()
-  for yml in "$ROLES_DIR"/*.yml; do
-    [[ -f "$yml" ]] || continue
-    local rid rname
-    rid="$(basename "$yml" .yml)"
-    rname="$(grep '^name:' "$yml" | head -1 | cut -d: -f2- | sed 's/^ *//')"
-    role_items+=("$rid" "$rname")
-  done
+  local -a role_items=()
+  local role
+  while IFS= read -r role; do
+    role_items+=("$role" "$(role_field "$role" name)")
+  done < <(role_ids)
 
-  role_choice="$(dialog --backtitle "$BACKTITLE" --title "Select Category" \
-    --menu "Pick a category to browse packages:" 20 60 13 \
-    "${role_items[@]}" \
-    3>&1 1>&2 2>&3)" || return
+  local choice
+  choice="$(dialog --backtitle "$BACKTITLE" --title "Select Category" \
+    --menu "Pick a category:" 20 64 13 "${role_items[@]}" 3>&1 1>&2 2>&3)" || return
+  role_exists "$choice" || return
 
-  local yml="$ROLES_DIR/${role_choice}.yml"
-  [[ -f "$yml" ]] || return
-
-  local pkg_items=()
+  local -a items=()
+  local pkg
   while IFS= read -r pkg; do
-    local state="off"
-    pacman -Qi "$pkg" &>/dev/null && state="on"
+    local state=off tag=repo
+    pacman_q "$pkg" && state=on
+    pacman_si "$pkg" || tag="unavailable"
+    items+=("$pkg" "[$tag]" "$state")
+  done < <(role_packages "$choice")
 
-    local source_tag="repo"
-    pacman -Si "$pkg" &>/dev/null || source_tag="AUR"
+  local count=$(( ${#items[@]} / 3 ))
+  local selected
+  selected="$(dialog --backtitle "$BACKTITLE" --title "Packages: $choice" \
+    --checklist "\nSpace toggles, Enter installs.\n" \
+    $(( count + 9 > 30 ? 30 : count + 9 )) 66 $(( count > 18 ? 18 : count )) \
+    "${items[@]}" 3>&1 1>&2 2>&3)" || return
+  [[ -z "$selected" ]] && return
 
-    pkg_items+=("$pkg" "[$source_tag]" "$state")
-  done < <(grep '^  - ' "$yml" | sed 's/^  - //')
-
-  local count=$(( ${#pkg_items[@]} / 3 ))
-
-  local selected_pkgs
-  selected_pkgs="$(dialog --backtitle "$BACKTITLE" --title "Packages: $role_choice" \
-    --checklist "\nSpace = toggle, Enter = install\nAlready installed packages are pre-selected.\n" \
-    $(( count + 8 > 30 ? 30 : count + 8 )) 65 $(( count > 20 ? 20 : count )) \
-    "${pkg_items[@]}" \
-    3>&1 1>&2 2>&3)" || return
-
-  [[ -z "$selected_pkgs" ]] && return
-
-  local -a to_install=()
-  for pkg in $selected_pkgs; do
+  local -a wanted=()
+  for pkg in $selected; do
     pkg="${pkg//\"/}"
-    pacman -Qi "$pkg" &>/dev/null || to_install+=("$pkg")
+    pacman_q "$pkg" || wanted+=("$pkg")
   done
+  [[ ${#wanted[@]} -eq 0 ]] && {
+    dialog --backtitle "$BACKTITLE" --msgbox "Everything selected is already installed." 6 52; return; }
 
-  if [[ ${#to_install[@]} -eq 0 ]]; then
-    dialog --backtitle "$BACKTITLE" --msgbox "All selected packages are already installed." 6 50
-    return
+  ( pkg_install_priv "${wanted[@]}"; printf '\nResult: %s\n' "$(result_name $?)" ) \
+    | dialog --backtitle "$BACKTITLE" --title "Installing ${#wanted[@]} package(s)" --programbox 24 78
+
+  local failed=()
+  for pkg in "${wanted[@]}"; do pacman_q "$pkg" || failed+=("$pkg"); done
+  if [[ ${#failed[@]} -gt 0 ]]; then
+    local text="Unresolved packages:\n\n"
+    for pkg in "${failed[@]}"; do text+="  - ${pkg}\n"; done
+    dialog --backtitle "$BACKTITLE" --title "Incomplete" --msgbox "$text" 18 60
+  else
+    dialog --backtitle "$BACKTITLE" --title "Done" --msgbox "All selected packages installed." 7 44
   fi
-
-  (
-    pkg_install "${to_install[@]}" 2>&1
-  ) | dialog --backtitle "$BACKTITLE" \
-      --title "Installing ${#to_install[@]} packages" \
-      --programbox 22 78
-
-  dialog --backtitle "$BACKTITLE" --title "Done" \
-    --msgbox "Installed ${#to_install[@]} package(s)!" 6 40
 }
 
-install_all_roles() {
-  dialog --backtitle "$BACKTITLE" --title "Install ALL Roles" \
-    --yesno "This will install ALL 13 roles (500+ packages).\nThis may take a very long time.\n\nContinue?" 9 55 || return
-
-  local total=0 current=0
-  for yml in "$ROLES_DIR"/*.yml; do
-    [[ -f "$yml" ]] && total=$((total + 1))
-  done
-
-  for yml in "$ROLES_DIR"/*.yml; do
-    [[ -f "$yml" ]] || continue
-    local role_id name
-    role_id="$(basename "$yml" .yml)"
-    current=$((current + 1))
-    name="$(grep '^name:' "$yml" | head -1 | cut -d: -f2- | sed 's/^ *//')"
-
-    if [[ -f "$HOME/.config/nulllinux-role-${role_id}" ]]; then
-      continue
-    fi
-
-    local -a pkgs
-    mapfile -t pkgs < <(grep '^  - ' "$yml" | sed 's/^  - //')
-
-    (
-      pkg_install "${pkgs[@]}" 2>&1
-    ) | dialog --backtitle "$BACKTITLE" \
-        --title "[$current/$total] $name" \
-        --programbox 22 78
-
-    touch "$HOME/.config/nulllinux-role-${role_id}"
-  done
-
-  dialog --backtitle "$BACKTITLE" --title "Complete" \
-    --msgbox "All $total roles installed!\nYou now have the full Null Linux arsenal." 7 50
-}
-
-view_installed() {
-  local info=""
-  local installed=0 total=0
-
-  for yml in "$ROLES_DIR"/*.yml; do
-    [[ -f "$yml" ]] || continue
+view_roles() {
+  local info="" role total=0 active=0
+  while IFS= read -r role; do
     total=$((total + 1))
-    local role_id name pkg_count
-    role_id="$(basename "$yml" .yml)"
-    name="$(grep '^name:' "$yml" | head -1 | cut -d: -f2- | sed 's/^ *//')"
-    pkg_count="$(grep -c '^  - ' "$yml" || echo 0)"
-
-    if [[ -f "$HOME/.config/nulllinux-role-${role_id}" ]]; then
-      info+="  [X] ${role_id} — ${name} (${pkg_count})\n"
-      installed=$((installed + 1))
-    else
-      info+="  [ ] ${role_id} — ${name} (${pkg_count})\n"
-    fi
-  done
-
-  dialog --backtitle "$BACKTITLE" --title "Installed Roles ($installed/$total)" \
-    --msgbox "\n${info}\n[X] = installed  [ ] = available" $(( total + 8 )) 60
-}
-
-show_sysinfo() {
-  local kernel hostname mem disk_free aur_status pkg_count
-  kernel="$(uname -r)"
-  hostname="$(cat /etc/hostname 2>/dev/null || echo 'unknown')"
-  mem="$(free -h | awk '/^Mem:/{print $2}')"
-  disk_free="$(df -h / | awk 'NR==2{print $4}')"
-  aur_status="${AUR_HELPER:-none}"
-  pkg_count="$(pacman -Q 2>/dev/null | wc -l)"
-
-  dialog --backtitle "$BACKTITLE" --title "System Info" \
-    --msgbox "\
-\n  Hostname:   $hostname\
-\n  Kernel:     $kernel\
-\n  Memory:     $mem\
-\n  Disk free:  $disk_free\
-\n  Shell:      $SHELL\
-\n  Packages:   $pkg_count installed\
-\n  AUR helper: $aur_status\
-\n  Repos:      Arch + BlackArch + Chaotic-AUR" 14 55
+    local st; st="$(role_status "$role")"
+    case "$st" in metapackage|installed|satisfied) active=$((active + 1)) ;; esac
+    info+="  $(printf '%-14s %-12s %s' "$role" "$st" "$(role_field "$role" name)")\n"
+  done < <(role_ids)
+  dialog --backtitle "$BACKTITLE" --title "Roles ($active of $total installed)" \
+    --msgbox "\n${info}" $(( total + 9 )) 72
 }
 
 run_update() {
   dialog --backtitle "$BACKTITLE" --title "Update" \
-    --yesno "Update system packages?\n(pacman -Syu)" 7 40 || return
+    --yesno "Synchronise and upgrade the whole system?\n\nThis is a full upgrade, never a partial one." 9 56 || return
+  ( "${SUDO[@]}" "$NULL_PACMAN" -Syu --noconfirm 2>&1 ) \
+    | dialog --backtitle "$BACKTITLE" --title "Upgrading" --programbox 24 78
+  dialog --backtitle "$BACKTITLE" --msgbox "Upgrade finished. Check the log above for details." 7 54
+}
 
-  (
-    sudo pacman -Syu --noconfirm 2>&1
-    if [[ -n "$AUR_HELPER" ]]; then
-      echo ""
-      echo "=== Updating AUR packages via $AUR_HELPER ==="
-      "$AUR_HELPER" -Sua --noconfirm 2>&1 || true
-    fi
-  ) | dialog --backtitle "$BACKTITLE" \
-      --title "Updating system..." \
-      --programbox 22 78
-
-  dialog --backtitle "$BACKTITLE" --msgbox "Update complete!" 6 30
+show_welcome() {
+  dialog --backtitle "$BACKTITLE" --title " Welcome to Null Linux " \
+    --yes-label "Start" --no-label "Exit" --yesno "\
+\n  Null Linux — Arch-based security workstation\n\
+\n  This wizard installs optional tool sets. Nothing is\n\
+  installed until you choose it.\n\
+\n  Roles available: $(role_ids | wc -l)\n\
+  Unique packages:  $(role_ids | while read -r r; do role_packages "$r"; done | sort -u | wc -l)\n\
+\n  Null Linux sends no telemetry and makes no network\n\
+  calls of its own. Package downloads go to the mirrors\n\
+  configured on this system.\n\
+\n  You can run 'null-setup' again at any time." 20 62
 }
 
 main() {
   if ! show_welcome; then
     clear
-    echo "Null Linux Setup — run 'null-setup' anytime."
+    echo "Null Linux Setup — run 'null-setup' whenever you want."
     exit 0
   fi
 
-  menu_main
+  while true; do
+    local choice
+    choice="$(dialog --backtitle "$BACKTITLE" --title "Main Menu" --cancel-label "Exit" \
+      --menu "Choose an option:" 17 62 6 \
+      1 "Install tools by role" \
+      2 "Install individual packages" \
+      3 "Show role status" \
+      4 "Update the system" \
+      5 "Exit" 3>&1 1>&2 2>&3)" || break
 
-  mkdir -p "$(dirname "$MARKER")"
-  touch "$MARKER"
+    case "$choice" in
+      1) menu_roles ;;
+      2) menu_packages ;;
+      3) view_roles ;;
+      4) run_update ;;
+      5) break ;;
+    esac
+  done
 
+  mark_first_run_done
   clear
-  echo "Null Linux setup complete. Happy hacking!"
-  echo "Run 'null-setup' anytime to install more tools."
+  echo "Null Linux setup finished. Run 'null-setup' any time to install more."
 }
 
 main "$@"

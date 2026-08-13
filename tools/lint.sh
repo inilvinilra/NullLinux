@@ -250,13 +250,17 @@ fi
 check "documentation facts match source"
 role_count="$(find config/roles -name '*.yml' | wc -l)"
 entry_count="$(find iso/airootfs/usr/share/nulllinux/desktop-entries -name '*.desktop' 2>/dev/null | wc -l)"
-if grep -qE '\*\*[0-9]+ security roles\*\*' README.md; then
-  claimed="$(grep -oE '\*\*[0-9]+ security roles\*\*' README.md | grep -oE '[0-9]+' | head -1)"
-  if [[ "$claimed" != "$role_count" ]]; then
-    fail "README claims ${claimed} roles; tree has ${role_count}"
-  else
-    pass "README role count matches (${role_count})"
-  fi
+claimed="$(grep -oE '\*\*[0-9]+ (security |tool )?roles\*\*' README.md | grep -oE '[0-9]+' | head -1)"
+if [[ -n "$claimed" && "$claimed" != "$role_count" ]]; then
+  fail "README claims ${claimed} roles; tree has ${role_count}"
+else
+  pass "README role count is consistent (${role_count})"
+fi
+doc_count="$(grep -oE '^[0-9]+ roles' docs/roles.md 2>/dev/null | grep -oE '[0-9]+' | head -1)"
+if [[ "$doc_count" != "$role_count" ]]; then
+  fail "docs/roles.md reports ${doc_count:-nothing}; tree has ${role_count} roles"
+else
+  pass "generated role catalog matches (${role_count})"
 fi
 missing_dirs=()
 for f in config/roles/*.yml; do
@@ -270,7 +274,7 @@ else
 fi
 printf '  %sinfo%s %d roles, %d desktop entries, %d unique packages\n' "$BOLD" "$NC" \
   "$role_count" "$entry_count" \
-  "$(grep -h '^  - ' config/roles/*.yml | sed 's/^  - //' | sort -u | wc -l)"
+  "$(grep -h '^package=' iso/airootfs/usr/share/nulllinux/roles/*.role | sort -u | wc -l)"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo

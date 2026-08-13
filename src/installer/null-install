@@ -1,406 +1,427 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
-VERSION="1.0.0"
-TARGET="/mnt"
+VERSION="2.0.0"
+TARGET="${NULL_TARGET:-/mnt}"
 BACKTITLE="Null Linux Installer v${VERSION}"
+LIB_DIR="${NULL_LIB_DIR:-/usr/share/nulllinux/lib}"
+SHARE_DIR="${NULL_SHARE_DIR:-/usr/share/nulllinux/installer}"
+LOG="/var/log/null-install.log"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-NC='\033[0m'
+# shellcheck source=../lib/nulllinux-validate.sh
+source "$LIB_DIR/nulllinux-validate.sh"
 
-die() { echo -e "${RED}Error: $*${NC}" >&2; exit 1; }
+RED=$'\033[0;31m'; NC=$'\033[0m'
 
-prompt_required_password() {
-  local title="$1"
-  local prompt="$2"
-  local value=""
+# ── state tracked for cleanup ────────────────────────────────────────────────
+MOUNTED=()
+SECRETS_DIR=""
+DISK=""
+EFI_PART=""
+ROOT_PART=""
+INSTALL_STARTED=false
 
-  while true; do
-    value="$(dialog --backtitle "$BACKTITLE" --title "$title" \
-      --insecure --passwordbox "$prompt" 8 56 3>&1 1>&2 2>&3)" || {
-      dialog --backtitle "$BACKTITLE" --msgbox "Password is required." 6 36
-      continue
-    }
+log() { printf '[%s] %s\n' "$(date -Is)" "$*" >> "$LOG"; }
 
-    if [[ -z "$value" ]]; then
-      dialog --backtitle "$BACKTITLE" --msgbox "Password cannot be empty." 6 38
-      continue
-    fi
-
-    local confirm
-    confirm="$(dialog --backtitle "$BACKTITLE" --title "${title} (Confirm)" \
-      --insecure --passwordbox "Re-enter password:" 8 56 3>&1 1>&2 2>&3)" || {
-      dialog --backtitle "$BACKTITLE" --msgbox "Password confirmation is required." 6 48
-      continue
-    }
-
-    if [[ "$value" != "$confirm" ]]; then
-      dialog --backtitle "$BACKTITLE" --msgbox "Passwords do not match. Try again." 6 44
-      continue
-    fi
-
-    printf '%s' "$value"
-    return 0
-  done
+die() {
+  log "FATAL: $*"
+  clear
+  printf '%sInstallation aborted:%s %s\n\n' "$RED" "$NC" "$*" >&2
+  printf 'Nothing further was written. See %s for the full log.\n' "$LOG" >&2
+  exit 1
 }
 
-prompt_optional_password() {
-  local title="$1"
-  local prompt="$2"
-  local value=""
-
-  while true; do
-    value="$(dialog --backtitle "$BACKTITLE" --title "$title" \
-      --insecure --passwordbox "$prompt" 9 60 3>&1 1>&2 2>&3)" || {
-      printf ''
-      return 0
-    }
-
-    [[ -z "$value" ]] && { printf ''; return 0; }
-
-    local confirm
-    confirm="$(dialog --backtitle "$BACKTITLE" --title "${title} (Confirm)" \
-      --insecure --passwordbox "Re-enter password (or leave empty to skip):" 9 60 3>&1 1>&2 2>&3)" || {
-      dialog --backtitle "$BACKTITLE" --msgbox "Password confirmation canceled. Try again." 6 52
-      continue
-    }
-
-    if [[ "$value" != "$confirm" ]]; then
-      dialog --backtitle "$BACKTITLE" --msgbox "Passwords do not match. Try again." 6 44
-      continue
-    fi
-
-    printf '%s' "$value"
-    return 0
-  done
-}
-
-make_password_hash() {
-  local plain="$1"
-  if [[ -z "$plain" ]]; then
-    printf ''
-    return 0
+# Unwind everything we created, in reverse order, on any exit path.
+cleanup() {
+  local status=$?
+  [[ -n "$SECRETS_DIR" && -d "$SECRETS_DIR" ]] && rm -rf -- "$SECRETS_DIR"
+  if [[ $status -ne 0 && "$INSTALL_STARTED" == true ]]; then
+    log "cleanup: unwinding after failure (status $status)"
+    local m
+    for (( i=${#MOUNTED[@]}-1; i>=0; i-- )); do
+      m="${MOUNTED[i]}"
+      umount -R "$m" 2>/dev/null || umount -l "$m" 2>/dev/null || true
+    done
   fi
-  # Use SHA-512 crypt hash to avoid PAM interactive password policy failures.
-  printf '%s' "$plain" | openssl passwd -6 -stdin
+  return $status
+}
+trap cleanup EXIT
+trap 'die "interrupted by signal"' INT TERM
+
+mount_tracked() {
+  mount "$@" || return 1
+  MOUNTED+=("${@: -1}")
 }
 
-check_deps() {
-  for cmd in dialog parted mkfs.fat mkfs.ext4 pacstrap genfstab arch-chroot bootctl; do
-    command -v "$cmd" >/dev/null 2>&1 || die "Missing dependency: $cmd"
+# ── preflight ────────────────────────────────────────────────────────────────
+
+require_root() { [[ ${EUID} -eq 0 ]] || die "must run as root: sudo null-install"; }
+
+require_deps() {
+  local missing=()
+  for cmd in dialog parted mkfs.fat mkfs.ext4 pacstrap genfstab arch-chroot \
+             bootctl lsblk findmnt blkid; do
+    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
   done
+  [[ ${#missing[@]} -eq 0 ]] || die "missing dependencies: ${missing[*]}"
 }
 
-check_root() {
-  [[ "${EUID}" -eq 0 ]] || die "This installer must be run as root.\nUsage: sudo null-install"
+require_uefi() {
+  [[ -d /sys/firmware/efi/efivars ]] && return 0
+  dialog --backtitle "$BACKTITLE" --title "UEFI required" --msgbox "\
+This installer supports UEFI systems only.\n\n\
+The machine was booted in legacy BIOS mode. Null Linux does not yet\n\
+support installing to BIOS systems, and will not pretend otherwise.\n\n\
+Reboot in UEFI mode to install." 12 62
+  exit 1
 }
 
-check_uefi() {
-  [[ -d /sys/firmware/efi/efivars ]]
+detect_microcode() {
+  local vendor
+  vendor="$(grep -m1 '^vendor_id' /proc/cpuinfo | awk '{print $3}')"
+  case "$vendor" in
+    GenuineIntel) printf 'intel-ucode' ;;
+    AuthenticAMD) printf 'amd-ucode' ;;
+    *) printf '' ;;
+  esac
 }
+
+# Devices backing the running live system must never be offered as targets.
+live_devices() {
+  local src parent
+  for mp in /run/archiso/bootmnt / /run/archiso/cowspace; do
+    src="$(findmnt -nro SOURCE --target "$mp" 2>/dev/null | head -1)" || continue
+    [[ -n "$src" && "$src" == /dev/* ]] || continue
+    printf '%s\n' "$src"
+    parent="$(lsblk -nro PKNAME "$src" 2>/dev/null | head -1)"
+    [[ -n "$parent" ]] && printf '/dev/%s\n' "$parent"
+  done
+  # Anything currently mounted is in use; treat its whole disk as unsafe.
+  while IFS= read -r src; do
+    [[ "$src" == /dev/* ]] || continue
+    printf '%s\n' "$src"
+    parent="$(lsblk -nro PKNAME "$src" 2>/dev/null | head -1)"
+    [[ -n "$parent" ]] && printf '/dev/%s\n' "$parent"
+  done < <(findmnt -nro SOURCE | sort -u)
+}
+
+MIN_DISK_BYTES=$(( 20 * 1000 * 1000 * 1000 ))
 
 select_disk() {
-  local disks=()
-  while IFS= read -r line; do
-    local name size
-    name="$(echo "$line" | awk '{print $1}')"
-    size="$(echo "$line" | awk '{print $4}')"
-    disks+=("$name" "$size")
-  done < <(lsblk -dpno NAME,TYPE,TRAN,SIZE | grep 'disk' | grep -v 'loop\|sr\|rom')
+  local unsafe
+  unsafe="$(live_devices | sort -u)"
 
-  if [[ ${#disks[@]} -eq 0 ]]; then
-    dialog --backtitle "$BACKTITLE" --msgbox "No suitable disks found." 6 40
+  local -a menu=()
+  local path type size model rm_flag
+  while read -r path type; do
+    [[ "$type" == disk ]] || continue
+    # zram, loop, optical and read-only devices are never install targets.
+    case "$path" in /dev/zram*|/dev/loop*|/dev/sr*|/dev/fd*) continue ;; esac
+    grep -qxF "$path" <<<"$unsafe" && continue
+    [[ "$(lsblk -dnro RO "$path" 2>/dev/null)" == "1" ]] && continue
+
+    size="$(lsblk -dnbro SIZE "$path" 2>/dev/null)"
+    [[ -n "$size" && "$size" -ge $MIN_DISK_BYTES ]] || continue
+    model="$(lsblk -dnro MODEL "$path" 2>/dev/null | tr -d '\n' | cut -c1-28)"
+    rm_flag="$(lsblk -dnro RM "$path" 2>/dev/null)"
+    [[ "$rm_flag" == "1" ]] && model="${model} [removable]"
+
+    menu+=("$path" "$(numfmt --to=iec --suffix=B "$size" 2>/dev/null || echo "$size") ${model:-unknown}")
+  done < <(lsblk -dnro PATH,TYPE)
+
+  if [[ ${#menu[@]} -eq 0 ]]; then
+    dialog --backtitle "$BACKTITLE" --msgbox "\
+No installable disk was found.\n\n\
+Disks are excluded when they are in use by the live system, are\n\
+read-only, or are smaller than 20 GB." 10 60
     exit 1
   fi
 
-  DISK="$(dialog --backtitle "$BACKTITLE" --title "Select Disk" \
-    --menu "Choose the target disk for installation.\nWARNING: All data will be erased!" 15 60 6 \
-    "${disks[@]}" 3>&1 1>&2 2>&3)" || exit 1
+  DISK="$(dialog --backtitle "$BACKTITLE" --title "Select target disk" \
+    --menu "\nEverything on the chosen disk will be destroyed.\nDisks in use by the live system are not listed.\n" \
+    18 70 8 "${menu[@]}" 3>&1 1>&2 2>&3)" || exit 0
 }
 
-confirm_wipe() {
-  dialog --backtitle "$BACKTITLE" --title "Confirm" \
-    --yesno "All data on ${DISK} will be PERMANENTLY DESTROYED.\n\nContinue?" 8 50 || exit 1
+describe_disk() {
+  local out
+  out="$(lsblk -o PATH,SIZE,FSTYPE,LABEL,MOUNTPOINTS "$DISK" 2>/dev/null)"
+  printf '%s' "$out"
 }
 
-partition_disk() {
-  dialog --backtitle "$BACKTITLE" --infobox "Partitioning ${DISK}..." 3 40
+confirm_destroy() {
+  local existing
+  existing="$(describe_disk)"
 
-  parted -s "$DISK" mklabel gpt
-  parted -s "$DISK" mkpart ESP fat32 1MiB 1025MiB
-  parted -s "$DISK" set 1 esp on
-  parted -s "$DISK" mkpart ROOT ext4 1025MiB 100%
+  dialog --backtitle "$BACKTITLE" --title "This will destroy data" --yesno "\
+Target: ${DISK}\n\n\
+Current contents:\n${existing}\n\n\
+All of it will be erased. Continue?" 20 72 || exit 0
 
-  local p=""
-  [[ "$DISK" =~ [0-9]$ ]] && p="p"
-  EFI_PART="${DISK}${p}1"
-  ROOT_PART="${DISK}${p}2"
+  local typed
+  typed="$(dialog --backtitle "$BACKTITLE" --title "Confirm target" --inputbox "\
+\nType the full device path to confirm erasing it:\n\n  ${DISK}\n" 12 60 \
+    3>&1 1>&2 2>&3)" || exit 0
 
-  mkfs.fat -F32 "$EFI_PART"
-  mkfs.ext4 -F "$ROOT_PART"
-
-  mount "$ROOT_PART" "$TARGET"
-  mkdir -p "$TARGET/boot"
-  mount "$EFI_PART" "$TARGET/boot"
+  [[ "$typed" == "$DISK" ]] || {
+    dialog --backtitle "$BACKTITLE" --msgbox "Confirmation did not match. Nothing was changed." 7 52
+    exit 0
+  }
 }
 
-get_user_config() {
-  HOSTNAME_VALUE="$(dialog --backtitle "$BACKTITLE" --title "Hostname" \
-    --inputbox "Enter hostname:" 8 50 "null" 3>&1 1>&2 2>&3)" || HOSTNAME_VALUE="null"
+# ── configuration ────────────────────────────────────────────────────────────
 
-  USERNAME_VALUE="$(dialog --backtitle "$BACKTITLE" --title "Username" \
-    --inputbox "Enter username:" 8 50 "null" 3>&1 1>&2 2>&3)" || USERNAME_VALUE="null"
-
-  USER_PASSWORD="$(prompt_required_password "User Password" "Enter password for ${USERNAME_VALUE}:")"
-  ROOT_PASSWORD="$(prompt_optional_password "Root Password (Optional)" "Enter root password (leave empty to disable root login):")"
-
-  TIMEZONE_VALUE="$(dialog --backtitle "$BACKTITLE" --title "Timezone" \
-    --inputbox "Enter timezone (e.g. Europe/Istanbul, UTC):" 8 60 "UTC" 3>&1 1>&2 2>&3)" || TIMEZONE_VALUE="UTC"
-
-  if [[ ! -e "/usr/share/zoneinfo/$TIMEZONE_VALUE" ]]; then
-    dialog --backtitle "$BACKTITLE" --msgbox "Invalid timezone: $TIMEZONE_VALUE\nFalling back to UTC." 7 50
-    TIMEZONE_VALUE="UTC"
-  fi
-}
-
-install_base() {
-  dialog --backtitle "$BACKTITLE" --title "Installing" \
-    --infobox "Installing base system...\nThis may take several minutes." 5 50
-
-  pacstrap -K "$TARGET" \
-    base linux linux-firmware mkinitcpio systemd systemd-sysvcompat \
-    amd-ucode intel-ucode sudo nano vim less which man-db man-pages bash-completion \
-    zsh networkmanager iwd openssh iptables-nft nftables ufw \
-    btrfs-progs dosfstools e2fsprogs efibootmgr exfatprogs f2fs-tools parted \
-    xorg-server dolphin konsole kate plasma-desktop plasma-nm plasma-pa \
-    plasma-workspace plasma-x11-session plasma-systemmonitor polkit-kde-agent qt6-wayland sddm \
-    xdg-desktop-portal-kde xdg-user-dirs xdg-utils breeze breeze-gtk \
-    kde-gtk-config kwallet-pam kscreen powerdevil spice-vdagent \
-    mesa vulkan-icd-loader ttf-dejavu ttf-liberation noto-fonts \
-    adwaita-icon-theme papirus-icon-theme archlinux-keyring \
-    blackarch-keyring blackarch-mirrorlist chaotic-keyring chaotic-mirrorlist \
-    paru yay dialog firefox fastfetch git
-
-  genfstab -U "$TARGET" > "$TARGET/etc/fstab"
-}
-
-configure_system() {
-  local ROOT_UUID
-  ROOT_UUID="$(blkid -s UUID -o value "$ROOT_PART")"
-
-  local USER_PASSWORD_HASH ROOT_PASSWORD_HASH
-  USER_PASSWORD_HASH="$(make_password_hash "$USER_PASSWORD")"
-  ROOT_PASSWORD_HASH="$(make_password_hash "$ROOT_PASSWORD")"
-
-  printf '%s' "$USER_PASSWORD_HASH" > "$TARGET/root/.user_hash"
-  printf '%s' "$ROOT_PASSWORD_HASH" > "$TARGET/root/.root_hash"
-  chmod 600 "$TARGET/root/.user_hash" "$TARGET/root/.root_hash"
-
-  cat > "$TARGET/root/null-postinstall.sh" <<POSTEOF
-#!/usr/bin/env bash
-set -euo pipefail
-
-ln -sf /usr/share/zoneinfo/${TIMEZONE_VALUE} /etc/localtime
-hwclock --systohc || true
-sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
-locale-gen
-printf 'LANG=en_US.UTF-8\n' > /etc/locale.conf
-printf 'KEYMAP=us\n' > /etc/vconsole.conf
-printf '%s\n' "${HOSTNAME_VALUE}" > /etc/hostname
-
-cat > /etc/hosts <<HOSTS
-127.0.0.1 localhost
-::1 localhost
-127.0.1.1 ${HOSTNAME_VALUE}.localdomain ${HOSTNAME_VALUE}
-HOSTS
-
-useradd -m -G wheel,audio,video,storage,optical -s /bin/zsh "${USERNAME_VALUE}"
-usermod -p "\$(cat /root/.user_hash)" "${USERNAME_VALUE}"
-if [[ -s /root/.root_hash ]]; then
-  usermod -p "\$(cat /root/.root_hash)" root
-else
-  passwd -l root || true
-fi
-rm -f /root/.user_hash /root/.root_hash
-
-install -d -m 0755 /etc/sudoers.d
-printf '%%wheel ALL=(ALL:ALL) ALL\n' > /etc/sudoers.d/01-wheel
-chmod 0440 /etc/sudoers.d/01-wheel
-
-systemctl enable NetworkManager.service
-systemctl enable sddm.service
-systemctl enable ufw.service
-systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
-
-systemctl mask ModemManager.service 2>/dev/null || true
-systemctl mask lvm2-monitor.service 2>/dev/null || true
-systemctl mask lvm2-lvmpolld.socket 2>/dev/null || true
-systemctl disable bluetooth.service 2>/dev/null || true
-
-pacman-key --init
-pacman-key --populate archlinux blackarch chaotic
-
-mkdir -p /etc/sysctl.d
-cat > /etc/sysctl.d/99-nulllinux-perf.conf <<'SYSCTL'
-vm.swappiness=10
-vm.vfs_cache_pressure=50
-vm.dirty_ratio=10
-vm.dirty_background_ratio=5
-SYSCTL
-
-mkdir -p /etc/xdg
-cat > /etc/xdg/baloofilerc <<'BALOO'
-[Basic Settings]
-Indexing-Enabled=false
-BALOO
-
-bootctl --path=/boot install
-mkdir -p /boot/loader/entries
-
-cat > /boot/loader/loader.conf <<LOADER
-default null-linux
-timeout 3
-editor no
-LOADER
-
-cat > /boot/loader/entries/null-linux.conf <<ENTRY
-title Null Linux
-linux /vmlinuz-linux
-initrd /amd-ucode.img
-initrd /intel-ucode.img
-initrd /initramfs-linux.img
-options root=UUID=${ROOT_UUID} rw quiet loglevel=3 systemd.show_status=auto
-ENTRY
-
-xdg-user-dirs-update
-POSTEOF
-
-  chmod +x "$TARGET/root/null-postinstall.sh"
-
-  cp -f /etc/pacman.conf "$TARGET/etc/pacman.conf"
-  cp -f /etc/pacman.d/blackarch-mirrorlist "$TARGET/etc/pacman.d/blackarch-mirrorlist" 2>/dev/null || true
-  cp -f /etc/pacman.d/chaotic-mirrorlist "$TARGET/etc/pacman.d/chaotic-mirrorlist" 2>/dev/null || true
-
-  arch-chroot "$TARGET" /root/null-postinstall.sh
-  rm -f "$TARGET/root/null-postinstall.sh"
-
-  dialog --backtitle "$BACKTITLE" --infobox "Copying Null Linux tools and configs..." 3 50
-
-  for tool in null-toolkit null-install null-setup; do
-    if [[ -f "/usr/bin/$tool" ]]; then
-      install -Dm755 "/usr/bin/$tool" "$TARGET/usr/bin/$tool"
+ask_validated() {
+  local title="$1" prompt="$2" default="$3" validator="$4" value
+  while true; do
+    value="$(dialog --backtitle "$BACKTITLE" --title "$title" \
+      --inputbox "$prompt" 9 60 "$default" 3>&1 1>&2 2>&3)" || exit 0
+    if "$validator" "$value"; then
+      printf '%s' "$value"
+      return 0
     fi
+    dialog --backtitle "$BACKTITLE" --msgbox "\"$value\" is not valid. Try again." 7 52
   done
-
-  if [[ -d /etc/nulllinux/roles.d ]]; then
-    install -dm755 "$TARGET/etc/nulllinux/roles.d"
-    cp -a /etc/nulllinux/roles.d/*.yml "$TARGET/etc/nulllinux/roles.d/" 2>/dev/null || true
-  fi
-
-  if [[ -d /usr/share/nulllinux ]]; then
-    cp -a /usr/share/nulllinux "$TARGET/usr/share/" 2>/dev/null || true
-  fi
-
-  if [[ -f /usr/share/nulllinux/hooks/update-desktop-entries.sh ]]; then
-    install -Dm755 /usr/share/nulllinux/hooks/update-desktop-entries.sh \
-      "$TARGET/usr/share/nulllinux/hooks/update-desktop-entries.sh"
-  fi
-
-  for f in /usr/share/desktop-directories/nulllinux-*.directory; do
-    [[ -f "$f" ]] && cp -f "$f" "$TARGET/usr/share/desktop-directories/" 2>/dev/null || true
-  done
-
-  if [[ -f /etc/xdg/menus/applications-merged/nulllinux-security.menu ]]; then
-    install -Dm644 /etc/xdg/menus/applications-merged/nulllinux-security.menu \
-      "$TARGET/etc/xdg/menus/applications-merged/nulllinux-security.menu"
-  fi
-
-  if [[ -f /usr/share/libalpm/hooks/nulllinux-desktop-entries.hook && -x /usr/share/nulllinux/hooks/update-desktop-entries.sh ]]; then
-    install -Dm644 /usr/share/libalpm/hooks/nulllinux-desktop-entries.hook \
-      "$TARGET/usr/share/libalpm/hooks/nulllinux-desktop-entries.hook"
-  fi
-
-  if [[ -d /usr/share/wallpapers/NullLinux ]]; then
-    cp -a /usr/share/wallpapers/NullLinux "$TARGET/usr/share/wallpapers/" 2>/dev/null || true
-  fi
-
-
-  if [[ -f /usr/lib/firefox/distribution/policies.json ]]; then
-    install -Dm644 /usr/lib/firefox/distribution/policies.json \
-      "$TARGET/usr/lib/firefox/distribution/policies.json"
-  fi
-
-  local skel_dirs=(".config/autostart" ".config/fastfetch" ".config/konsole" ".local/share/konsole")
-  local user_home="$TARGET/home/${USERNAME_VALUE}"
-  for d in "${skel_dirs[@]}"; do
-    if [[ -d "/etc/skel/$d" ]]; then
-      install -dm755 "$user_home/$d"
-      cp -a "/etc/skel/$d/." "$user_home/$d/" 2>/dev/null || true
-    fi
-  done
-
-  for f in .zshrc .config/kwinrc .config/baloofilerc .config/kdeglobals .config/plasmarc; do
-    if [[ -f "/etc/skel/$f" ]]; then
-      install -Dm644 "/etc/skel/$f" "$user_home/$f"
-    fi
-  done
-
-  arch-chroot "$TARGET" chown -R "${USERNAME_VALUE}:${USERNAME_VALUE}" "/home/${USERNAME_VALUE}"
 }
 
-show_complete() {
-  dialog --backtitle "$BACKTITLE" --title "Installation Complete" \
-    --msgbox "Null Linux has been installed!\n\n\
-Hostname: ${HOSTNAME_VALUE}\n\
-User: ${USERNAME_VALUE}\n\
-Desktop: KDE Plasma (Breeze Dark)\n\
-Boot: systemd-boot (UEFI)\n\
-Firewall: ufw (enabled)\n\
-AUR: paru + yay\n\
-Repos: Arch + BlackArch + Chaotic-AUR\n\n\
-On first login, the Null Linux Setup Wizard\n\
-will launch to install security tools, apps,\n\
-and role packages.\n\n\
-Remove the installation media and reboot:\n\n\
-  umount -R /mnt && reboot" 22 55
+ask_password() {
+  local title="$1" prompt="$2" required="$3" value confirm
+  while true; do
+    value="$(dialog --backtitle "$BACKTITLE" --title "$title" --insecure \
+      --passwordbox "$prompt" 9 60 3>&1 1>&2 2>&3)" || {
+      [[ "$required" == required ]] && continue
+      printf ''; return 0
+    }
+    if [[ -z "$value" ]]; then
+      [[ "$required" == required ]] || { printf ''; return 0; }
+      dialog --backtitle "$BACKTITLE" --msgbox "A password is required." 7 40
+      continue
+    fi
+    confirm="$(dialog --backtitle "$BACKTITLE" --title "$title (confirm)" --insecure \
+      --passwordbox "Re-enter the password:" 9 60 3>&1 1>&2 2>&3)" || continue
+    [[ "$value" == "$confirm" ]] && { printf '%s' "$value"; return 0; }
+    dialog --backtitle "$BACKTITLE" --msgbox "Passwords did not match." 7 40
+  done
+}
+
+get_config() {
+  HOSTNAME_VALUE="$(ask_validated "Hostname" "\nLowercase letters, digits and hyphens." "null" valid_hostname)"
+  USERNAME_VALUE="$(ask_validated "Username" "\nLowercase letters, digits, underscore and hyphen." "null" valid_username)"
+  TIMEZONE_VALUE="$(ask_validated "Timezone" "\nFor example Europe/Istanbul or UTC." "UTC" valid_timezone)"
+
+  USER_PASSWORD="$(ask_password "User password" "Password for ${USERNAME_VALUE}:" required)"
+  ROOT_PASSWORD="$(ask_password "Root password" "Root password (empty locks the root account):" optional)"
+
+  dialog --backtitle "$BACKTITLE" --title "Third-party repositories" --yesno "\
+\nEnable BlackArch and Chaotic-AUR on the installed system?\n\n\
+They provide most security tooling, but they are maintained by\n\
+third parties and are not covered by Arch's security process.\n\n\
+You can enable them later. Default is no." 13 66
+  ENABLE_THIRD_PARTY=$([[ $? -eq 0 ]] && echo true || echo false)
+}
+
+# ── execution ────────────────────────────────────────────────────────────────
+
+step() {
+  local label="$1"; shift
+  log "step: $label"
+  dialog --backtitle "$BACKTITLE" --infobox "$label..." 3 60
+  if ! "$@" >> "$LOG" 2>&1; then
+    die "$label failed. See $LOG"
+  fi
+}
+
+do_partition() {
+  INSTALL_STARTED=true
+  wipefs -a "$DISK" || return 1
+  parted -s "$DISK" mklabel gpt || return 1
+  parted -s "$DISK" mkpart ESP fat32 1MiB 1025MiB || return 1
+  parted -s "$DISK" set 1 esp on || return 1
+  parted -s "$DISK" mkpart ROOT ext4 1025MiB 100% || return 1
+  udevadm settle || true
+
+  EFI_PART="$(partition_path "$DISK" 1)"
+  ROOT_PART="$(partition_path "$DISK" 2)"
+  [[ -b "$EFI_PART" && -b "$ROOT_PART" ]] || return 1
+
+  mkfs.fat -F32 "$EFI_PART" || return 1
+  mkfs.ext4 -F "$ROOT_PART" || return 1
+
+  mount_tracked "$ROOT_PART" "$TARGET" || return 1
+  mkdir -p "$TARGET/boot" || return 1
+  mount_tracked "$EFI_PART" "$TARGET/boot" || return 1
+}
+
+do_pacstrap() {
+  local -a packages=(
+    base linux linux-firmware mkinitcpio sudo
+    nano vim less man-db bash-completion
+    networkmanager iwd openssh nftables ufw
+    dosfstools e2fsprogs btrfs-progs efibootmgr exfatprogs parted
+    plasma-desktop plasma-workspace plasma-nm plasma-pa plasma-systemmonitor
+    plasma-x11-session polkit-kde-agent qt6-wayland sddm dolphin konsole kate
+    xdg-desktop-portal-kde xdg-user-dirs xdg-utils breeze breeze-gtk
+    kde-gtk-config kwallet-pam kscreen powerdevil
+    mesa vulkan-icd-loader ttf-dejavu ttf-liberation noto-fonts
+    adwaita-icon-theme papirus-icon-theme archlinux-keyring
+    dialog firefox git
+  )
+  [[ -n "$MICROCODE" ]] && packages+=("$MICROCODE")
+  pacstrap -K "$TARGET" "${packages[@]}"
+}
+
+do_fstab() { genfstab -U "$TARGET" > "$TARGET/etc/fstab"; }
+
+# Identity, defaults and tooling are installed as files we own, not copied
+# opportunistically out of the live filesystem.
+do_identity() {
+  install -Dm644 "$SHARE_DIR/os-release" "$TARGET/etc/os-release" || return 1
+
+  install -dm755 "$TARGET/usr/share/nulllinux/lib"
+  install -Dm644 "$LIB_DIR"/*.sh -t "$TARGET/usr/share/nulllinux/lib/" || return 1
+
+  local f
+  for f in null-toolkit null-setup null-setup-firstrun; do
+    [[ -f "/usr/bin/$f" ]] && install -Dm755 "/usr/bin/$f" "$TARGET/usr/bin/$f"
+  done
+
+  install -dm755 "$TARGET/usr/share/nulllinux/roles"
+  cp -a /usr/share/nulllinux/roles/. "$TARGET/usr/share/nulllinux/roles/" 2>/dev/null || true
+  cp -a /usr/share/nulllinux/desktop-entries "$TARGET/usr/share/nulllinux/" 2>/dev/null || true
+  cp -a /usr/share/nulllinux/hooks "$TARGET/usr/share/nulllinux/" 2>/dev/null || true
+  cp -a /usr/share/desktop-directories/nulllinux-*.directory \
+        "$TARGET/usr/share/desktop-directories/" 2>/dev/null || true
+  install -Dm644 /usr/share/libalpm/hooks/nulllinux-desktop-entries.hook \
+        "$TARGET/usr/share/libalpm/hooks/nulllinux-desktop-entries.hook" 2>/dev/null || true
+  install -Dm644 /etc/xdg/menus/applications-merged/nulllinux-security.menu \
+        "$TARGET/etc/xdg/menus/applications-merged/nulllinux-security.menu" 2>/dev/null || true
+  cp -a /usr/share/wallpapers/NullLinux "$TARGET/usr/share/wallpapers/" 2>/dev/null || true
+
+  # SDDM: the installed system gets the theme, never the live autologin.
+  install -Dm644 "$SHARE_DIR/sddm.conf" "$TARGET/etc/sddm.conf.d/10-null-linux.conf"
+  install -Dm644 /etc/ssh/sshd_config.d/10-null-linux.conf \
+        "$TARGET/etc/ssh/sshd_config.d/10-null-linux.conf" 2>/dev/null || true
+
+  # The full KDE skel, so the installed desktop matches the live one.
+  cp -a /etc/skel/. "$TARGET/etc/skel/" 2>/dev/null || true
+  rm -f "$TARGET/etc/skel/.config/autostart/null-setup.desktop"
+  install -Dm644 "/etc/skel/.config/autostart/null-setup.desktop" \
+        "$TARGET/etc/skel/.config/autostart/null-setup.desktop" 2>/dev/null || true
+
+  if [[ "$ENABLE_THIRD_PARTY" == true ]]; then
+    cp -f /etc/pacman.conf "$TARGET/etc/pacman.conf"
+    cp -f /etc/pacman.d/blackarch-mirrorlist "$TARGET/etc/pacman.d/" 2>/dev/null || true
+    cp -f /etc/pacman.d/chaotic-mirrorlist "$TARGET/etc/pacman.d/" 2>/dev/null || true
+  fi
+  return 0
+}
+
+do_chroot_config() {
+  local root_uuid
+  root_uuid="$(blkid -s UUID -o value "$ROOT_PART")" || return 1
+  [[ -n "$root_uuid" ]] || return 1
+
+  SECRETS_DIR="$TARGET/run/nulllinux"
+  install -dm700 "$SECRETS_DIR"
+  if [[ -n "$USER_PASSWORD" ]]; then
+    (umask 077; printf '%s' "$USER_PASSWORD" | openssl passwd -6 -stdin > "$SECRETS_DIR/user.hash")
+  fi
+  if [[ -n "$ROOT_PASSWORD" ]]; then
+    (umask 077; printf '%s' "$ROOT_PASSWORD" | openssl passwd -6 -stdin > "$SECRETS_DIR/root.hash")
+  fi
+
+  install -Dm755 "$SHARE_DIR/postinstall.sh" "$TARGET/usr/local/bin/null-postinstall"
+
+  arch-chroot "$TARGET" env \
+    NULL_HOSTNAME="$HOSTNAME_VALUE" \
+    NULL_USERNAME="$USERNAME_VALUE" \
+    NULL_TIMEZONE="$TIMEZONE_VALUE" \
+    NULL_ROOT_UUID="$root_uuid" \
+    NULL_MICROCODE="$MICROCODE" \
+    /usr/local/bin/null-postinstall
+  local rc=$?
+
+  rm -rf -- "$SECRETS_DIR"; SECRETS_DIR=""
+  rm -f "$TARGET/usr/local/bin/null-postinstall"
+
+  arch-chroot "$TARGET" chown -R "${USERNAME_VALUE}:${USERNAME_VALUE}" \
+    "/home/${USERNAME_VALUE}" 2>/dev/null || true
+  return $rc
+}
+
+verify_install() {
+  local problems=()
+  [[ -f "$TARGET/etc/os-release" ]] && grep -q '^ID=nulllinux' "$TARGET/etc/os-release" \
+    || problems+=("Null Linux identity missing")
+  [[ -s "$TARGET/etc/fstab" ]] || problems+=("fstab is empty")
+  [[ -e "$TARGET/boot/vmlinuz-linux" ]] || problems+=("kernel missing")
+  [[ -e "$TARGET/boot/initramfs-linux.img" ]] || problems+=("initramfs missing")
+  [[ -e "$TARGET/boot/loader/entries/null-linux.conf" ]] || problems+=("boot entry missing")
+  [[ -d "$TARGET/home/${USERNAME_VALUE}" ]] || problems+=("user home missing")
+  grep -q "^${USERNAME_VALUE}:" "$TARGET/etc/passwd" || problems+=("user not created")
+  [[ -f "$TARGET/etc/sudoers.d/01-wheel" ]] || problems+=("sudo policy missing")
+
+  if [[ ${#problems[@]} -gt 0 ]]; then
+    printf '%s\n' "${problems[@]}"
+    return 1
+  fi
+  return 0
 }
 
 main() {
-  check_root
-  check_deps
+  require_root
+  require_deps
+  install -dm755 "$(dirname "$LOG")"
+  log "null-install ${VERSION} starting"
+  require_uefi
 
-  if ! check_uefi; then
-    dialog --backtitle "$BACKTITLE" --msgbox \
-      "WARNING: UEFI not detected.\nThis installer requires UEFI mode.\nPlease boot in UEFI mode and try again." 8 50
+  MICROCODE="$(detect_microcode)"
+
+  dialog --backtitle "$BACKTITLE" --title "Null Linux Installer" --yesno "\
+\n  This installs Null Linux with a KDE Plasma desktop.\n\n\
+  Current scope: UEFI, GPT, unencrypted ext4.\n\
+  Disk encryption is not implemented yet.\n\n\
+  Security tools are installed after first boot, by choice.\n\n  Continue?" 15 62 || exit 0
+
+  select_disk
+  confirm_destroy
+  get_config
+
+  local summary="Disk:      ${DISK}\nHostname:  ${HOSTNAME_VALUE}\nUser:      ${USERNAME_VALUE}\n"
+  summary+="Timezone:  ${TIMEZONE_VALUE}\nMicrocode: ${MICROCODE:-none detected}\n"
+  summary+="Root:      $([[ -n "$ROOT_PASSWORD" ]] && echo "password set" || echo "locked")\n"
+  summary+="3rd-party repos: ${ENABLE_THIRD_PARTY}\n\nStart the installation?"
+  dialog --backtitle "$BACKTITLE" --title "Review" --yesno "$summary" 17 62 || exit 0
+
+  step "Partitioning ${DISK}" do_partition
+  step "Installing the base system (this takes a while)" do_pacstrap
+  step "Generating fstab" do_fstab
+  step "Installing Null Linux identity and defaults" do_identity
+  step "Configuring the installed system" do_chroot_config
+
+  local problems
+  if ! problems="$(verify_install)"; then
+    dialog --backtitle "$BACKTITLE" --title "Installation incomplete" --msgbox "\
+The installation did not pass verification:\n\n${problems}\n\n\
+The target is left mounted at ${TARGET} for inspection.\n\
+Log: ${LOG}" 16 64
     exit 1
   fi
 
-  dialog --backtitle "$BACKTITLE" --title "Null Linux Installer" \
-    --yesno "\n  Welcome to Null Linux\n\n  This will install a clean Null Linux system.\n  Security tools will be available after first boot\n  via the Setup Wizard.\n\n  Continue?" 13 55 || exit 0
-
-  select_disk
-  confirm_wipe
-  get_user_config
-
-  dialog --backtitle "$BACKTITLE" --title "Review" \
-    --yesno "Installation summary:\n\n\
-Disk: ${DISK}\n\
-Hostname: ${HOSTNAME_VALUE}\n\
-User: ${USERNAME_VALUE}\n\
-Timezone: ${TIMEZONE_VALUE}\n\
-Desktop: KDE Plasma\n\
-AUR helpers: paru, yay\n\n\
-Begin installation?" 16 50 || exit 0
-
-  partition_disk
-  install_base
-  configure_system
-  show_complete
-
+  INSTALL_STARTED=false
   umount -R "$TARGET" 2>/dev/null || true
+
+  dialog --backtitle "$BACKTITLE" --title "Installation complete" --msgbox "\
+Null Linux is installed and verified.\n\n\
+  Hostname:  ${HOSTNAME_VALUE}\n\
+  User:      ${USERNAME_VALUE}\n\
+  Boot:      systemd-boot (UEFI), fallback entry included\n\
+  Firewall:  incoming denied\n\
+  SSH:       installed, not enabled\n\n\
+Filesystems are unmounted. Remove the installation medium\n\
+and reboot.\n\n\
+Run 'null-setup' after first login to add tools." 20 64
+  clear
+  log "installation completed successfully"
 }
 
 main "$@"
