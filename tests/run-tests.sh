@@ -274,5 +274,14 @@ is "known repo recognised" "0" "$(known_repo blackarch; echo $?)"
 is "unknown repo rejected" "1" "$(known_repo notarepo; echo $?)"
 is "repo starts disabled" "1" "$(is_enabled blackarch; echo $?)"
 
+# The installer cannot be unit-tested the way a library can: it is a sequence of
+# steps against a disk. Its control flow can be, and that suite runs itself.
+if "$ROOT_DIR/tests/installer-unattended-test.sh"; then
+  pass_count=$((pass_count + 1))
+else
+  fail_count=$((fail_count + 1))
+  printf '  \033[0;31m✗\033[0m installer unattended suite failed\n'
+fi
+
 printf '\n%d passed, %d failed\n' "$pass_count" "$fail_count"
 [[ $fail_count -eq 0 ]]

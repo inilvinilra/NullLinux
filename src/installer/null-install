@@ -4,15 +4,27 @@ set -uo pipefail
 VERSION="2.0.0"
 TARGET="${NULL_TARGET:-/mnt}"
 BACKTITLE="Null Linux Installer v${VERSION}"
-LIB_DIR="${NULL_LIB_DIR:-/usr/share/nulllinux/lib}"
-SHARE_DIR="${NULL_SHARE_DIR:-/usr/share/nulllinux/installer}"
-DATA_DIR="${NULL_DATA_DIR:-/usr/share/nulllinux}"
-SKEL_DIR="${NULL_SKEL_DIR:-/etc/skel}"
-BIN_DIR="${NULL_BIN_DIR:-/usr/bin}"
-LOG="/var/log/null-install.log"
 
+# Everything the installed system receives is copied out of one tree: the live
+# medium by default. Naming that tree once means a test, or a build injected at
+# run time, can point the installer somewhere else without the installer growing
+# a special mode — and it means no payload path is written twice.
+SRC_ROOT="${NULL_SRC_ROOT:-}"
+LIB_DIR="${NULL_LIB_DIR:-$SRC_ROOT/usr/share/nulllinux/lib}"
+SHARE_DIR="${NULL_SHARE_DIR:-$SRC_ROOT/usr/share/nulllinux/installer}"
+DATA_DIR="${NULL_DATA_DIR:-$SRC_ROOT/usr/share/nulllinux}"
+SKEL_DIR="${NULL_SKEL_DIR:-$SRC_ROOT/etc/skel}"
+BIN_DIR="${NULL_BIN_DIR:-$SRC_ROOT/usr/bin}"
+LOG="${NULL_LOG:-/var/log/null-install.log}"
+
+# A missing library is not a warning. Without it every valid_* check is an
+# undefined command, and an installer whose input validation silently evaporates
+# is worse than one that will not start.
 # shellcheck source=../lib/nulllinux-validate.sh
-source "$LIB_DIR/nulllinux-validate.sh"
+if ! source "$LIB_DIR/nulllinux-validate.sh"; then
+  printf 'null-install: cannot load %s/nulllinux-validate.sh\n' "$LIB_DIR" >&2
+  exit 1
+fi
 
 RED=$'\033[0;31m'; NC=$'\033[0m'
 
@@ -96,21 +108,28 @@ detect_microcode() {
 }
 
 # Devices backing the running live system must never be offered as targets.
+#
+# Any absolute path a filesystem is mounted from counts, not just one under
+# /dev: the list is only ever compared against a chosen target, so casting it
+# wider can refuse an install but can never permit one.
+emit_source_and_parent() {
+  local src="$1" parent
+  [[ -n "$src" && "$src" == /* ]] || return 0
+  printf '%s\n' "$src"
+  parent="$(lsblk -nro PKNAME "$src" 2>/dev/null | head -1)"
+  [[ -n "$parent" ]] && printf '/dev/%s\n' "$parent"
+  return 0
+}
+
 live_devices() {
-  local src parent
+  local src
   for mp in /run/archiso/bootmnt / /run/archiso/cowspace; do
     src="$(findmnt -nro SOURCE --target "$mp" 2>/dev/null | head -1)" || continue
-    [[ -n "$src" && "$src" == /dev/* ]] || continue
-    printf '%s\n' "$src"
-    parent="$(lsblk -nro PKNAME "$src" 2>/dev/null | head -1)"
-    [[ -n "$parent" ]] && printf '/dev/%s\n' "$parent"
+    emit_source_and_parent "$src"
   done
   # Anything currently mounted is in use; treat its whole disk as unsafe.
   while IFS= read -r src; do
-    [[ "$src" == /dev/* ]] || continue
-    printf '%s\n' "$src"
-    parent="$(lsblk -nro PKNAME "$src" 2>/dev/null | head -1)"
-    [[ -n "$parent" ]] && printf '/dev/%s\n' "$parent"
+    emit_source_and_parent "$src"
   done < <(findmnt -nro SOURCE | sort -u)
 }
 
@@ -309,11 +328,11 @@ do_identity() {
   done
 
   install -dm755 "$TARGET/usr/share/desktop-directories"
-  cp -a /usr/share/desktop-directories/nulllinux-*.directory \
+  cp -a "$SRC_ROOT"/usr/share/desktop-directories/nulllinux-*.directory \
         "$TARGET/usr/share/desktop-directories/" || return 1
-  install -Dm644 /usr/share/libalpm/hooks/nulllinux-desktop-entries.hook \
+  install -Dm644 "$SRC_ROOT/usr/share/libalpm/hooks/nulllinux-desktop-entries.hook" \
         "$TARGET/usr/share/libalpm/hooks/nulllinux-desktop-entries.hook" || return 1
-  install -Dm644 /etc/xdg/menus/applications-merged/nulllinux-security.menu \
+  install -Dm644 "$SRC_ROOT/etc/xdg/menus/applications-merged/nulllinux-security.menu" \
         "$TARGET/etc/xdg/menus/applications-merged/nulllinux-security.menu" || return 1
 
   # The full KDE skel, so the installed desktop matches the live one.
@@ -321,14 +340,14 @@ do_identity() {
   cp -a "$SKEL_DIR/." "$TARGET/etc/skel/" || return 1
 
   # Optional: absent on a host that is not the live image, and not worth failing for.
-  cp -a /usr/share/wallpapers/NullLinux "$TARGET/usr/share/wallpapers/" 2>/dev/null || true
-  install -Dm644 /etc/ssh/sshd_config.d/10-null-linux.conf \
+  cp -a "$SRC_ROOT/usr/share/wallpapers/NullLinux" "$TARGET/usr/share/wallpapers/" 2>/dev/null || true
+  install -Dm644 "$SRC_ROOT/etc/ssh/sshd_config.d/10-null-linux.conf" \
         "$TARGET/etc/ssh/sshd_config.d/10-null-linux.conf" 2>/dev/null || true
 
   if [[ "$ENABLE_THIRD_PARTY" == true ]]; then
-    cp -f /etc/pacman.conf "$TARGET/etc/pacman.conf" || return 1
-    cp -f /etc/pacman.d/blackarch-mirrorlist "$TARGET/etc/pacman.d/" 2>/dev/null || true
-    cp -f /etc/pacman.d/chaotic-mirrorlist "$TARGET/etc/pacman.d/" 2>/dev/null || true
+    cp -f "$SRC_ROOT/etc/pacman.conf" "$TARGET/etc/pacman.conf" || return 1
+    cp -f "$SRC_ROOT/etc/pacman.d/blackarch-mirrorlist" "$TARGET/etc/pacman.d/" 2>/dev/null || true
+    cp -f "$SRC_ROOT/etc/pacman.d/chaotic-mirrorlist" "$TARGET/etc/pacman.d/" 2>/dev/null || true
   fi
   return 0
 }
@@ -441,6 +460,34 @@ load_answers() {
   return 0
 }
 
+# Every message the installer shows after work has begun has to survive an
+# unattended run. A dialog nobody can dismiss does not fail the install — it
+# hangs it, which is worse, because the log stops with the last thing that
+# worked and looks like a crash.
+report_success() {
+  local body="\
+Null Linux is installed and verified.
+
+  Hostname:  ${HOSTNAME_VALUE}
+  User:      ${USERNAME_VALUE}
+  Boot:      systemd-boot (UEFI), fallback entry included
+  Firewall:  incoming denied
+  SSH:       installed, not enabled
+
+Filesystems are unmounted. Remove the installation medium
+and reboot.
+
+Run 'null-setup' after first login to add tools."
+
+  if $UNATTENDED; then
+    printf '%s\n' "$body"
+    return 0
+  fi
+  dialog --backtitle "$BACKTITLE" --title "Installation complete" \
+    --msgbox "$body" 20 64
+  clear
+}
+
 main() {
   if [[ "${1:-}" == "--unattended" ]]; then
     UNATTENDED=true
@@ -496,20 +543,9 @@ Log: ${LOG}" 16 64
   fi
 
   INSTALL_STARTED=false
-UNATTENDED=false
   umount -R "$TARGET" 2>/dev/null || true
 
-  dialog --backtitle "$BACKTITLE" --title "Installation complete" --msgbox "\
-Null Linux is installed and verified.\n\n\
-  Hostname:  ${HOSTNAME_VALUE}\n\
-  User:      ${USERNAME_VALUE}\n\
-  Boot:      systemd-boot (UEFI), fallback entry included\n\
-  Firewall:  incoming denied\n\
-  SSH:       installed, not enabled\n\n\
-Filesystems are unmounted. Remove the installation medium\n\
-and reboot.\n\n\
-Run 'null-setup' after first login to add tools." 20 64
-  clear
+  report_success
   log "installation completed successfully"
 }
 

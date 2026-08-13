@@ -50,23 +50,23 @@ timezone=UTC
 user_password=$password
 third_party_repos=false
 EOF
-# Ship the working tree's tools alongside the answers so the run tests current
-# code, not whatever was baked into the image.
-mkdir -p "$answers_dir/bin" "$answers_dir/lib" "$answers_dir/installer"
-install -m755 "$ROOT_DIR/src/installer/null-install"               "$answers_dir/bin/"
-install -m755 "$ROOT_DIR/src/tools/null-toolkit/null-toolkit"      "$answers_dir/bin/"
-install -m755 "$ROOT_DIR/src/tools/null-setup/null-setup"          "$answers_dir/bin/"
-install -m755 "$ROOT_DIR/src/tools/null-setup/null-setup-firstrun" "$answers_dir/bin/"
-install -m755 "$ROOT_DIR/src/tools/null-setup/null-apply-branding" "$answers_dir/bin/"
-install -m755 "$ROOT_DIR/src/tools/null-repo/null-repo"            "$answers_dir/bin/"
-install -m644 "$ROOT_DIR"/src/lib/*.sh                             "$answers_dir/lib/"
-install -m755 "$ROOT_DIR/src/installer/postinstall.sh"             "$answers_dir/installer/"
-install -m644 "$ROOT_DIR/iso/airootfs/usr/share/nulllinux/installer/os-release" \
-              "$ROOT_DIR/iso/airootfs/usr/share/nulllinux/installer/sddm.conf" \
-              "$answers_dir/installer/"
+# Ship the working tree's whole payload alongside the answers, laid out exactly
+# as it sits on the live medium, and point the installer at it with NULL_SRC_ROOT.
+# The image then only has to be a working harness: tools, role data, desktop
+# entries and the KDE skel are all taken from the tree under test, so a change to
+# any of them is exercised without rebuilding a 25-minute ISO.
+stage_dir="$(mktemp -d)"
+"$ROOT_DIR/tools/stage-profile.sh" "$stage_dir/profile" >/dev/null \
+  || die "could not stage the profile for injection"
+cp -a "$stage_dir/profile/airootfs" "$answers_dir/root"
+# The live-only pieces have no business in an injected payload.
+rm -rf "$answers_dir/root/etc/sudoers.d" \
+       "$answers_dir/root/etc/systemd/system/getty@tty1.service.d" \
+       "$answers_dir/root/root"
+rm -rf "$stage_dir"
 
 command -v mcopy >/dev/null || die "mtools is required (pacman -S mtools)"
-truncate -s 32M "$ANSWERS_IMG"
+truncate -s 64M "$ANSWERS_IMG"
 mkfs.vfat -n NULLANSWERS "$ANSWERS_IMG" >/dev/null
 mcopy -i "$ANSWERS_IMG" -s "$answers_dir"/* :: || die "could not write the answers disk"
 rm -rf "$answers_dir"

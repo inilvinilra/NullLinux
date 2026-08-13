@@ -20,18 +20,15 @@ fi
 mkdir -p /run/nulltest
 mount -o ro "$ANSWERS_DEV" /run/nulltest || { MARK "FAIL cannot mount answers"; systemctl poweroff; exit 1; }
 
-# The image is a harness. When the answers disk carries a build of the tools,
-# test that build rather than the one baked into the ISO, so a code change does
-# not require a new image.
+# The image is a harness. When the answers disk carries a payload laid out like
+# a live medium, install from that instead of from the one baked into the ISO,
+# so a code change does not require a new image. One variable moves the whole
+# payload, because the installer reads all of it from a single root.
 INSTALLER=null-install
 declare -a ENV_OVERRIDES=()
-if [[ -x /run/nulltest/bin/null-install ]]; then
-  INSTALLER=/run/nulltest/bin/null-install
-  ENV_OVERRIDES=(
-    "NULL_LIB_DIR=/run/nulltest/lib"
-    "NULL_SHARE_DIR=/run/nulltest/installer"
-    "NULL_BIN_DIR=/run/nulltest/bin"
-  )
+if [[ -x /run/nulltest/root/usr/bin/null-install ]]; then
+  INSTALLER=/run/nulltest/root/usr/bin/null-install
+  ENV_OVERRIDES=("NULL_SRC_ROOT=/run/nulltest/root")
   MARK "USING_INJECTED_BUILD"
 fi
 
