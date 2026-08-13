@@ -123,20 +123,37 @@ state_owned() {
   done < "$f"
 }
 
+# State lives where an unprivileged user cannot write, so recording it needs the
+# same escalation a transaction does. Handling that here is what keeps the file
+# format in one place: a front end that hand-rolled the write would be a second
+# definition of it, free to drift.
 state_write() {
   local role="$1"; shift
   local stamp
   stamp="$(date -Iseconds)"
-  mkdir -p "$NULL_STATE_DIR"
-  {
+  local body
+  body="$(
     printf 'role=%s\n' "$role"
     printf 'installed_at=%s\n' "$stamp"
-    local p
-    for p in "$@"; do printf 'owned=%s\n' "$p"; done
-  } > "$(state_file "$role")"
+    [[ $# -gt 0 ]] && printf 'owned=%s\n' "$@"
+  )"
+
+  if [[ -n "$NULL_PACMAN_PREFIX" ]]; then
+    "$NULL_PACMAN_PREFIX" install -dm755 "$NULL_STATE_DIR" || return 1
+    printf '%s\n' "$body" | "$NULL_PACMAN_PREFIX" tee "$(state_file "$role")" >/dev/null
+  else
+    install -dm755 "$NULL_STATE_DIR" || return 1
+    printf '%s\n' "$body" > "$(state_file "$role")"
+  fi
 }
 
-state_clear() { rm -f "$(state_file "$1")"; }
+state_clear() {
+  if [[ -n "$NULL_PACMAN_PREFIX" ]]; then
+    "$NULL_PACMAN_PREFIX" rm -f "$(state_file "$1")"
+  else
+    rm -f "$(state_file "$1")"
+  fi
+}
 
 # ── installation ─────────────────────────────────────────────────────────────
 

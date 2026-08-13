@@ -106,7 +106,8 @@ cmd_install() {
 
   case "$result" in
     "$NULL_RESULT_COMPLETE" | "$NULL_RESULT_PARTIAL")
-      state_write "$role" "${PKG_INSTALLED[@]}"
+      state_write "$role" "${PKG_INSTALLED[@]}" || warn \
+        "Could not record role state in $NULL_STATE_DIR; removal will not know what this role installed."
       ;;
   esac
   exit "$result"

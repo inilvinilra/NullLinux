@@ -13,19 +13,17 @@ command -v dialog >/dev/null 2>&1 || { echo "dialog is required: pacman -S dialo
 
 # Package operations need root. Asking once, up front, is honest and keeps the
 # password prompt out of the progress window where it would be invisible.
-SUDO=()
 if [[ ${EUID} -ne 0 ]]; then
-  SUDO=(sudo)
   if ! sudo -v 2>/dev/null; then
     dialog --backtitle "$BACKTITLE" --msgbox \
       "Administrator rights are required to install packages.\n\nRun 'null-setup' again and provide your password." 9 56
     clear; exit 1
   fi
+  # The engine escalates with a prefix; it must not be folded into the command
+  # name, or the shell looks for a program literally called "sudo pacman".
+  # shellcheck disable=SC2034  # read by the sourced engine, not by this file
+  NULL_PACMAN_PREFIX=sudo
 fi
-# The engine escalates with a prefix; it must not be folded into the command name,
-# or the shell looks for a program literally called "sudo pacman".
-# shellcheck disable=SC2034  # read by pacman_write() in the sourced engine
-[[ ${#SUDO[@]} -gt 0 ]] && NULL_PACMAN_PREFIX="${SUDO[0]}"
 
 mark_first_run_done() {
   mkdir -p "$(dirname "$STATE")"
@@ -59,6 +57,13 @@ install_roles() {
     local -a pkgs=()
     mapfile -t pkgs < <(role_packages "$role")
 
+    # Which packages this run is responsible for has to be settled before the
+    # transaction: anything already present belongs to whatever put it there,
+    # and removing the role later must not take it away.
+    local p
+    local -a wanted=()
+    for p in "${pkgs[@]}"; do pacman_q "$p" || wanted+=("$p"); done
+
     (
       printf 'Installing %s (%d packages)\n\n' "$(role_field "$role" name)" "${#pkgs[@]}"
       pkg_install "${pkgs[@]}"
@@ -67,17 +72,22 @@ install_roles() {
         --programbox 24 78
 
     # Re-derive the outcome from the package database rather than from the
-    # pipeline's exit status, which belongs to dialog.
-    local missing=()
-    local p
-    for p in "${pkgs[@]}"; do pacman_q "$p" || missing+=("$p"); done
+    # pipeline's exit status, which belongs to dialog. pkg_install ran in a
+    # subshell, so its arrays never reached this one.
+    local -a gained=() missing=()
+    for p in "${wanted[@]}"; do
+      if pacman_q "$p"; then gained+=("$p"); else missing+=("$p"); fi
+    done
+
+    # The role is recorded as chosen as soon as any of its packages is present,
+    # complete or not, so a partial role can still be undone — and the owned
+    # list stays limited to what this run installed. A role where nothing landed
+    # at all is not recorded: there is nothing to own and nothing to undo.
+    local present=$(( ${#pkgs[@]} - ${#missing[@]} ))
+    [[ $present -gt 0 ]] && state_write "$role" "${gained[@]}"
 
     if [[ ${#missing[@]} -eq 0 ]]; then
       result=$NULL_RESULT_COMPLETE
-      "${SUDO[@]}" install -dm755 "$NULL_STATE_DIR" 2>/dev/null || true
-      printf 'role=%s\ninstalled_at=%s\n%s\n' "$role" "$(date -Iseconds)" \
-        "$(printf 'owned=%s\n' "${pkgs[@]}")" \
-        | "${SUDO[@]}" tee "$(state_file "$role")" >/dev/null
     else
       result=$NULL_RESULT_PARTIAL
       all_failed+=("${missing[@]}")

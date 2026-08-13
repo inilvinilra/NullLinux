@@ -255,6 +255,33 @@ rm -f "$TMP/db.sudolog"
 NULL_PACMAN_PREFIX="$TMP/bin/fakesudo" pacman_q a
 is "queries bypass the prefix" "0" "$(test -f "$TMP/db.sudolog" && echo 1 || echo 0)"
 
+# Recording role state writes outside the user's reach, so it escalates too.
+# One implementation, used by every front end: a wizard that wrote the file
+# itself would be a second definition of the format.
+reset_world
+rm -f "$TMP/db.sudolog"
+NULL_PACMAN_PREFIX="$TMP/bin/fakesudo" state_write r1 a b
+is "state is written through the prefix" "1" \
+   "$(grep -c 'fakesudo:install' "$TMP/db.sudolog" 2>/dev/null || echo 0)"
+is "state records what the role owns" "a b" \
+   "$(state_owned r1 | tr '\n' ' ' | sed 's/ $//')"
+is "state names the role" "role=r1" "$(head -1 "$(state_file r1)")"
+
+rm -f "$TMP/db.sudolog"
+NULL_PACMAN_PREFIX="$TMP/bin/fakesudo" state_clear r1
+is "clearing state goes through the prefix too" "1" \
+   "$(grep -c 'fakesudo:rm' "$TMP/db.sudolog" 2>/dev/null || echo 0)"
+is "cleared state is gone" "0" "$(test -f "$(state_file r1)" && echo 1 || echo 0)"
+
+reset_world
+state_write r1 a
+is "state still works with no prefix" "a" "$(state_owned r1)"
+
+# A role with no packages must not record a phantom one.
+reset_world
+state_write empty
+is "an empty role owns nothing" "0" "$(state_owned empty | grep -c .)"
+
 # ── repository trust ─────────────────────────────────────────────────────────
 group "null-repo fingerprint handling"
 cp "$ROOT_DIR/iso/pacman.conf" "$TMP/pacman.conf"
