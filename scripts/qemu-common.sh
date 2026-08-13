@@ -13,8 +13,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[1]}")/.." && pwd)"
-OUT_DIR="$ROOT_DIR/out"
-ISO_PATH="${1:-$(find "$OUT_DIR" -maxdepth 1 -type f -name '*.iso' 2>/dev/null | sort | tail -n 1)}"
+# build-iso.sh relocates its output when the repository path contains
+# whitespace, so look in both places before giving up.
+OUT_DIR="${NULL_OUT_DIR:-$ROOT_DIR/out}"
+ISO_PATH="${1:-$(find "$OUT_DIR" /var/tmp/nulllinux-out -maxdepth 1 -type f -name '*.iso' 2>/dev/null | sort | tail -n 1)}"
 ACCEL_ARGS=()
 
 if [[ -z "${ISO_PATH}" || ! -f "${ISO_PATH}" ]]; then

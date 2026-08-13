@@ -23,12 +23,31 @@ It never modifies the host's pacman or mirror configuration.
 
 ## Boot testing
 
+Interactive:
+
 ```bash
 ./scripts/run-qemu-uefi.sh    # UEFI
 ./scripts/run-qemu-bios.sh    # legacy BIOS live boot
 ```
 
-**Never test installation against a real disk.** Use a disposable QEMU image.
+Automated, with evidence:
+
+```bash
+./tests/qemu-boot-test.sh                 # live boot, writes a screenshot
+sudo ./tests/install-test.sh              # install to a loop device, then boot it
+```
+
+`qemu-boot-test.sh` boots the ISO headless under OVMF and captures the
+framebuffer. QEMU exits cleanly whether or not the guest booted, so inspect the
+screenshot; a successful live boot shows the Plasma desktop.
+
+`install-test.sh` creates its own file-backed loop device, installs to it
+unattended, verifies the result offline, then boots the disk with no
+installation medium attached.
+
+**Never test installation against a real disk.** Both scripts create and destroy
+their own images, and the installer independently refuses any device backing a
+mounted filesystem.
 
 ## Smoke checklist
 
