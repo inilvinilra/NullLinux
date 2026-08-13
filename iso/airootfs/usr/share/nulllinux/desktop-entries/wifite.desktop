@@ -2,7 +2,9 @@
 Type=Application
 Name=Wifite
 Comment=Automated wireless attack tool
-Exec=konsole -e sudo wifite --help
+Exec=konsole --hold -e wifite --help
+TryExec=wifite
 Icon=network-wireless
 Terminal=false
-Categories=NullLinux-Wireless;
+Categories=System;Security;X-NullLinux-Wireless;
+X-NullLinux-Package=wifite

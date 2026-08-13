@@ -2,7 +2,9 @@
 Type=Application
 Name=Nmap
 Comment=Network exploration and security auditing
-Exec=konsole -e nmap --help
+Exec=konsole --hold -e nmap --help
+TryExec=nmap
 Icon=utilities-terminal
 Terminal=false
-Categories=NullLinux-RedTeam;NullLinux-Network;
+Categories=System;Security;X-NullLinux-RedTeam;X-NullLinux-Network;
+X-NullLinux-Package=nmap

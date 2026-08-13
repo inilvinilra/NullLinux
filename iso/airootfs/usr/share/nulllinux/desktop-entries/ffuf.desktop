@@ -2,7 +2,9 @@
 Type=Application
 Name=ffuf
 Comment=Fast web fuzzer
-Exec=konsole -e ffuf --help
+Exec=konsole --hold -e ffuf --help
+TryExec=ffuf
 Icon=text-html
 Terminal=false
-Categories=NullLinux-Web;
+Categories=System;Security;X-NullLinux-Web;
+X-NullLinux-Package=ffuf

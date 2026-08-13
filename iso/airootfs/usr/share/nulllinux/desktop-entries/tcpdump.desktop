@@ -2,7 +2,9 @@
 Type=Application
 Name=tcpdump
 Comment=Command-line packet analyzer
-Exec=konsole -e sudo tcpdump --help
+Exec=konsole --hold -e tcpdump --help
+TryExec=tcpdump
 Icon=network-workgroup
 Terminal=false
-Categories=NullLinux-Network;NullLinux-BlueTeam;
+Categories=System;Security;X-NullLinux-Network;X-NullLinux-BlueTeam;
+X-NullLinux-Package=tcpdump

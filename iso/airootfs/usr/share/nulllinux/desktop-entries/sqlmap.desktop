@@ -2,7 +2,9 @@
 Type=Application
 Name=sqlmap
 Comment=Automatic SQL injection tool
-Exec=konsole -e sqlmap --wizard
+Exec=konsole --hold -e sqlmap -h
+TryExec=sqlmap
 Icon=utilities-terminal
 Terminal=false
-Categories=NullLinux-RedTeam;NullLinux-Web;
+Categories=System;Security;X-NullLinux-RedTeam;X-NullLinux-Web;
+X-NullLinux-Package=sqlmap

@@ -2,7 +2,9 @@
 Type=Application
 Name=Hashcat
 Comment=Advanced password recovery
-Exec=konsole -e hashcat --help
+Exec=konsole --hold -e hashcat --help
+TryExec=hashcat
 Icon=utilities-terminal
 Terminal=false
-Categories=NullLinux-RedTeam;
+Categories=System;Security;X-NullLinux-RedTeam;
+X-NullLinux-Package=hashcat

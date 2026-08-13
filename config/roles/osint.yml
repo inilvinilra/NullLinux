@@ -1,49 +1,52 @@
+id: osint
 name: OSINT & Recon
 description: Open source intelligence gathering, reconnaissance, and asset discovery
+menu_name: OSINT & Recon
+menu_icon: system-search
 packages:
-  - amass
-  - subfinder
-  - httpx
-  - naabu
-  - python-shodan
-  - sherlock
-  - phoneinfoga
-  - spiderfoot
-  - sn0int
-  - metagoofil
-  - sublist3r
-  - whatweb
-  - wafw00f
-  - findomain
-  - nuclei
-  - nuclei-templates
-  - recon-ng
-  - maltego
-  - theharvester
-  - dnsenum
-  - dnsrecon
-  - dmitry
-  - urlcrazy
-  - rustscan
-  - masscan
-  - nmap
-  - zmap
-  - fierce
-  - photon
-  - holehe
-  - socialscan
-  - perl-image-exiftool
-  - whois
-  - eyewitness
-  - assetfinder
-  - gau
-  - waybackurls
-  - unfurl
-  - chaos-client
-  - mapcidr
-  - katana-pd
-  - katana
-  - tlsx
-  - asnmap
-  - alterx
-  - cdncheck
+- amass
+- subfinder
+- httpx
+- naabu
+- python-shodan
+- sherlock
+- phoneinfoga
+- spiderfoot
+- sn0int
+- metagoofil
+- sublist3r
+- whatweb
+- wafw00f
+- findomain
+- nuclei
+- nuclei-templates
+- recon-ng
+- maltego
+- theharvester
+- dnsenum
+- dnsrecon
+- dmitry
+- urlcrazy
+- rustscan
+- masscan
+- nmap
+- zmap
+- fierce
+- photon
+- holehe
+- socialscan
+- perl-image-exiftool
+- whois
+- eyewitness
+- assetfinder
+- gau
+- waybackurls
+- unfurl
+- chaos-client
+- mapcidr
+- katana-pd
+- katana
+- tlsx
+- asnmap
+- alterx
+- cdncheck

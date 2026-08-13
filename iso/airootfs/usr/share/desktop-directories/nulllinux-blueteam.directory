@@ -1,5 +1,5 @@
 [Desktop Entry]
 Type=Directory
 Name=Blue Team
-Comment=Defensive security and incident response
-Icon=security-high
+Comment=Defensive security, monitoring, IDS/IPS, and incident response
+Icon=security-medium

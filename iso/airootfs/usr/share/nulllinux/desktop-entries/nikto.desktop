@@ -2,7 +2,9 @@
 Type=Application
 Name=Nikto
 Comment=Web server scanner
-Exec=konsole -e nikto -Help
+Exec=konsole --hold -e nikto -Help
+TryExec=nikto
 Icon=text-html
 Terminal=false
-Categories=NullLinux-Web;
+Categories=System;Security;X-NullLinux-Web;
+X-NullLinux-Package=nikto

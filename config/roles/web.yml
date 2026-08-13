@@ -1,42 +1,45 @@
+id: web
 name: Web Application Security
 description: Web application penetration testing and vulnerability scanning
+menu_name: Web Security
+menu_icon: applications-internet
 packages:
-  - ffuf
-  - feroxbuster
-  - dalfox
-  - sqlmap
-  - burpsuite
-  - wpscan
-  - zaproxy
-  - dirb
-  - gobuster
-  - dirbuster
-  - beef
-  - nikto
-  - w3af
-  - wapiti
-  - arachni
-  - skipfish
-  - commix
-  - xsstrike
-  - xsser
-  - wfuzz
-  - nuclei
-  - httpx
-  - whatweb
-  - arjun
-  - gospider
-  - hakrawler
-  - httprobe
-  - meg
-  - subjack
-  - crlfuzz
-  - gf
-  - qsreplace
-  - waybackurls
-  - gau
-  - linkfinder
-  - secretfinder
-  - paramspider
-  - katana-pd
-  - katana
+- ffuf
+- feroxbuster
+- dalfox
+- sqlmap
+- burpsuite
+- wpscan
+- zaproxy
+- dirb
+- gobuster
+- dirbuster
+- beef
+- nikto
+- w3af
+- wapiti
+- arachni
+- skipfish
+- commix
+- xsstrike
+- xsser
+- wfuzz
+- nuclei
+- httpx
+- whatweb
+- arjun
+- gospider
+- hakrawler
+- httprobe
+- meg
+- subjack
+- crlfuzz
+- gf
+- qsreplace
+- waybackurls
+- gau
+- linkfinder
+- secretfinder
+- paramspider
+- katana-pd
+- katana

@@ -1,8 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Tor
-Comment=Anonymity network
-Exec=konsole -e tor
+Name=Tor Browser
+Comment=Tor Browser launcher
+Exec=torbrowser-launcher
+TryExec=torbrowser-launcher
 Icon=preferences-system-privacy
 Terminal=false
-Categories=NullLinux-OPSEC;
+Categories=System;Security;X-NullLinux-OPSEC;
+X-NullLinux-Package=torbrowser-launcher

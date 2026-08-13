@@ -1,5 +1,5 @@
 [Desktop Entry]
 Type=Directory
-Name=OPSEC
-Comment=Operational security and privacy
-Icon=preferences-system-privacy
+Name=OPSEC & Privacy
+Comment=Operational security, privacy, anonymity, and encryption tools
+Icon=security-high

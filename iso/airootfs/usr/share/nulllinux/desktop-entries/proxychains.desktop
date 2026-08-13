@@ -2,7 +2,9 @@
 Type=Application
 Name=Proxychains
 Comment=Force TCP connections through proxy
-Exec=konsole -e proxychains4 --help
+Exec=konsole --hold -e proxychains4 --help
+TryExec=proxychains4
 Icon=preferences-system-privacy
 Terminal=false
-Categories=NullLinux-OPSEC;
+Categories=System;Security;X-NullLinux-OPSEC;
+X-NullLinux-Package=proxychains-ng

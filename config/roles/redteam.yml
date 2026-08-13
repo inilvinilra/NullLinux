@@ -1,48 +1,51 @@
+id: redteam
 name: Red Team
 description: Full offensive security and penetration testing toolkit
+menu_name: Red Team
+menu_icon: applications-system
 packages:
-  - nmap
-  - metasploit
-  - sqlmap
-  - john
-  - hashcat
-  - seclists
-  - hydra
-  - medusa
-  - ncrack
-  - crunch
-  - gobuster
-  - responder
-  - impacket
-  - bloodhound
-  - mimikatz
-  - enum4linux
-  - evil-winrm
-  - ligolo-ng
-  - netexec
-  - certipy
-  - cewl
-  - hashid
-  - ophcrack
-  - fcrackzip
-  - pdfcrack
-  - rsmangler
-  - kerbrute
-  - sliver
-  - havoc-c2
-  - wordlistctl
-  - princeprocessor
-  - hcxtools
-  - hcxdumptool
-  - hash-identifier
-  - patator
-  - crowbar
-  - brutespray
-  - thc-pptp-bruter
-  - pth-toolkit
-  - sprayhound
-  - adidnsdump
-  - ldeep
-  - go-windapsearch
-  - wordlists
-  - bloodhound-python
+- nmap
+- metasploit
+- sqlmap
+- john
+- hashcat
+- seclists
+- hydra
+- medusa
+- ncrack
+- crunch
+- gobuster
+- responder
+- impacket
+- bloodhound
+- mimikatz
+- enum4linux
+- evil-winrm
+- ligolo-ng
+- netexec
+- certipy
+- cewl
+- hashid
+- ophcrack
+- fcrackzip
+- pdfcrack
+- rsmangler
+- kerbrute
+- sliver
+- havoc-c2
+- wordlistctl
+- princeprocessor
+- hcxtools
+- hcxdumptool
+- hash-identifier
+- patator
+- crowbar
+- brutespray
+- thc-pptp-bruter
+- pth-toolkit
+- sprayhound
+- adidnsdump
+- ldeep
+- go-windapsearch
+- wordlists
+- bloodhound-python

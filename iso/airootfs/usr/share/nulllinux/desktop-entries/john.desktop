@@ -2,7 +2,9 @@
 Type=Application
 Name=John the Ripper
 Comment=Password cracker
-Exec=konsole -e john --help
+Exec=konsole --hold -e john --help
+TryExec=john
 Icon=utilities-terminal
 Terminal=false
-Categories=NullLinux-RedTeam;
+Categories=System;Security;X-NullLinux-RedTeam;
+X-NullLinux-Package=john

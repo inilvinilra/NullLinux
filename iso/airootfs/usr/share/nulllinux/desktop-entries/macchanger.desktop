@@ -2,7 +2,9 @@
 Type=Application
 Name=macchanger
 Comment=MAC address spoofing utility
-Exec=konsole -e macchanger --help
+Exec=konsole --hold -e macchanger --help
+TryExec=macchanger
 Icon=preferences-system-privacy
 Terminal=false
-Categories=NullLinux-OPSEC;
+Categories=System;Security;X-NullLinux-OPSEC;
+X-NullLinux-Package=macchanger

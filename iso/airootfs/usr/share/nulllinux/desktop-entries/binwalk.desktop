@@ -2,7 +2,9 @@
 Type=Application
 Name=Binwalk
 Comment=Firmware analysis tool
-Exec=konsole -e binwalk --help
+Exec=konsole --hold -e binwalk --help
+TryExec=binwalk
 Icon=drive-harddisk
 Terminal=false
-Categories=NullLinux-Forensics;
+Categories=System;Security;X-NullLinux-Forensics;
+X-NullLinux-Package=binwalk

@@ -2,7 +2,9 @@
 Type=Application
 Name=Suricata
 Comment=Network threat detection engine
-Exec=konsole -e sudo suricata --help
+Exec=konsole --hold -e suricata --help
+TryExec=suricata
 Icon=security-high
 Terminal=false
-Categories=NullLinux-BlueTeam;NullLinux-Network;
+Categories=System;Security;X-NullLinux-BlueTeam;X-NullLinux-Network;
+X-NullLinux-Package=suricata

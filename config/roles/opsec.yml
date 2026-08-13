@@ -1,45 +1,48 @@
+id: opsec
 name: OPSEC & Privacy
 description: Operational security, privacy, anonymity, and encryption tools
+menu_name: OPSEC & Privacy
+menu_icon: security-high
 packages:
-  - tor
-  - torsocks
-  - torbrowser-launcher
-  - proxychains-ng
-  - macchanger
-  - bleachbit
-  - firejail
-  - apparmor
-  - mat2
-  - onionshare
-  - i2pd
-  - veracrypt
-  - cryptomator
-  - keepassxc
-  - bitwarden
-  - kleopatra
-  - age
-  - gnupg
-  - mullvad-browser-bin
-  - librewolf-bin
-  - proton-vpn-gtk-app
-  - protonmail-bridge
-  - wireguard-tools
-  - openvpn
-  - signal-desktop
-  - session-desktop-bin
-  - simplex-chat-bin
-  - briar-desktop
-  - tomb
-  - bubblewrap
-  - zulucrypt
-  - paperkey
-  - pass
-  - gopass
-  - rage
-  - minisign
-  - signify
-  - sbctl
-  - lynis
-  - opensnitch
-  - nftables
-  - ufw
+- tor
+- torsocks
+- torbrowser-launcher
+- proxychains-ng
+- macchanger
+- bleachbit
+- firejail
+- apparmor
+- mat2
+- onionshare
+- i2pd
+- veracrypt
+- cryptomator
+- keepassxc
+- bitwarden
+- kleopatra
+- age
+- gnupg
+- mullvad-browser-bin
+- librewolf-bin
+- proton-vpn-gtk-app
+- protonmail-bridge
+- wireguard-tools
+- openvpn
+- signal-desktop
+- session-desktop-bin
+- simplex-chat-bin
+- briar-desktop
+- tomb
+- bubblewrap
+- zulucrypt
+- paperkey
+- pass
+- gopass
+- rage
+- minisign
+- signify
+- sbctl
+- lynis
+- opensnitch
+- nftables
+- ufw

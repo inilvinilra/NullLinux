@@ -1,10 +1,13 @@
+id: crypto
 name: Crypto & Finance
 description: Cryptocurrency wallets and blockchain tools
+menu_name: Cryptography
+menu_icon: application-certificate
 packages:
-  - monero-gui
-  - electrum
-  - monero
-  - trezor-suite-bin
-  - bisq-bin
-  - python-eth-utils
-  - python-web3
+- monero-gui
+- electrum
+- monero
+- trezor-suite-bin
+- bisq-bin
+- python-eth-utils
+- python-web3

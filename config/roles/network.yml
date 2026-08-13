@@ -1,44 +1,47 @@
+id: network
 name: Network Traffic Analysis & Sniffing
 description: Network monitoring, packet capture, IDS/IPS, and MITM tools
+menu_name: Network Analysis
+menu_icon: network-wired
 packages:
-  - zeek
-  - suricata
-  - wireshark-qt
-  - wireshark-cli
-  - networkminer
-  - ettercap-gtk
-  - bettercap
-  - mitmproxy
-  - dsniff
-  - netsniff-ng
-  - scapy
-  - tcpdump
-  - nmap
-  - masscan
-  - openbsd-netcat
-  - arpwatch
-  - traceroute
-  - mtr
-  - hping
-  - netdiscover
-  - iperf3
-  - bind
-  - whois
-  - ngrep
-  - p0f
-  - tcpreplay
-  - yersinia
-  - arping-th
-  - fping
-  - lft
-  - dnstop
-  - darkstat
-  - iftop
-  - nethogs
-  - vnstat
-  - nload
-  - termshark
-  - ssldump
-  - sslscan
-  - sslstrip
-  - responder
+- zeek
+- suricata
+- wireshark-qt
+- wireshark-cli
+- networkminer
+- ettercap-gtk
+- bettercap
+- mitmproxy
+- dsniff
+- netsniff-ng
+- scapy
+- tcpdump
+- nmap
+- masscan
+- openbsd-netcat
+- arpwatch
+- traceroute
+- mtr
+- hping
+- netdiscover
+- iperf3
+- bind
+- whois
+- ngrep
+- p0f
+- tcpreplay
+- yersinia
+- arping-th
+- fping
+- lft
+- dnstop
+- darkstat
+- iftop
+- nethogs
+- vnstat
+- nload
+- termshark
+- ssldump
+- sslscan
+- sslstrip
+- responder

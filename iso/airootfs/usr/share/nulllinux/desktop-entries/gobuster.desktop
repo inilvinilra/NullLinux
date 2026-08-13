@@ -2,7 +2,9 @@
 Type=Application
 Name=Gobuster
 Comment=Directory and DNS brute-forcer
-Exec=konsole -e gobuster --help
+Exec=konsole --hold -e gobuster --help
+TryExec=gobuster
 Icon=utilities-terminal
 Terminal=false
-Categories=NullLinux-RedTeam;NullLinux-Web;
+Categories=System;Security;X-NullLinux-RedTeam;X-NullLinux-Web;
+X-NullLinux-Package=gobuster

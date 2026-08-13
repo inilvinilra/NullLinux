@@ -2,7 +2,9 @@
 Type=Application
 Name=Lynis
 Comment=Security auditing tool
-Exec=konsole -e sudo lynis audit system
+Exec=konsole --hold -e lynis --help
+TryExec=lynis
 Icon=security-high
 Terminal=false
-Categories=NullLinux-BlueTeam;
+Categories=System;Security;X-NullLinux-BlueTeam;
+X-NullLinux-Package=lynis

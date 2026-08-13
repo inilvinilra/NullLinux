@@ -2,7 +2,9 @@
 Type=Application
 Name=Radare2
 Comment=Reverse engineering framework
-Exec=konsole -e r2 -h
+Exec=konsole --hold -e r2 -h
+TryExec=r2
 Icon=applications-development
 Terminal=false
-Categories=NullLinux-Exploitation;
+Categories=System;Security;X-NullLinux-Exploitation;
+X-NullLinux-Package=radare2

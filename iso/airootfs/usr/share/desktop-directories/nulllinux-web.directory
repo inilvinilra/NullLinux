@@ -1,5 +1,5 @@
 [Desktop Entry]
 Type=Directory
-Name=Web Pentesting
-Comment=Web application security testing
-Icon=text-html
+Name=Web Security
+Comment=Web application penetration testing and vulnerability scanning
+Icon=applications-internet

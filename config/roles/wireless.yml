@@ -1,32 +1,35 @@
+id: wireless
 name: Wireless & RF Attacks
 description: Wireless network auditing, WiFi attacks, and RF tools
+menu_name: Wireless
+menu_icon: network-wireless
 packages:
-  - aircrack-ng
-  - kismet
-  - wifite
-  - hcxdumptool
-  - hcxtools
-  - reaver
-  - pixiewps
-  - hostapd-wpe
-  - freeradius
-  - fluxion
-  - bully
-  - fern-wifi-cracker
-  - cowpatty
-  - mdk4
-  - asleap
-  - eapmd5pass
-  - wifi-honey
-  - gnuradio
-  - gqrx
-  - hackrf
-  - wifiphisher
-  - iw
-  - wavemon
-  - horst
-  - spectools
-  - linssid
-  - sparrow-wifi
-  - macchanger
-  - wpa_supplicant
+- aircrack-ng
+- kismet
+- wifite
+- hcxdumptool
+- hcxtools
+- reaver
+- pixiewps
+- hostapd-wpe
+- freeradius
+- fluxion
+- bully
+- fern-wifi-cracker
+- cowpatty
+- mdk4
+- asleap
+- eapmd5pass
+- wifi-honey
+- gnuradio
+- gqrx
+- hackrf
+- wifiphisher
+- iw
+- wavemon
+- horst
+- spectools
+- linssid
+- sparrow-wifi
+- macchanger
+- wpa_supplicant

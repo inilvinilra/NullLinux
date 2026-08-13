@@ -1,33 +1,36 @@
+id: reversing
 name: Reverse Engineering & Malware Analysis
 description: Binary analysis, debugging, decompilation, and malware research
+menu_name: Reverse Engineering
+menu_icon: applications-development
 packages:
-  - ghidra
-  - radare2
-  - edb
-  - ltrace
-  - strace
-  - gdb
-  - android-apktool
-  - jadx
-  - dex2jar
-  - cutter
-  - ropper
-  - ropgadget
-  - checksec
-  - pwndbg
-  - one_gadget
-  - r2ghidra
-  - python-capstone
-  - python-keystone
-  - python-unicorn
-  - yara
-  - upx
-  - nasm
-  - flasm
-  - jd-gui
-  - bytecode-viewer
-  - cfr
-  - procyon-decompiler
-  - detect-it-easy
-  - rizin
-  - iaito
+- ghidra
+- radare2
+- edb
+- ltrace
+- strace
+- gdb
+- android-apktool
+- jadx
+- dex2jar
+- cutter
+- ropper
+- ropgadget
+- checksec
+- pwndbg
+- one_gadget
+- r2ghidra
+- python-capstone
+- python-keystone
+- python-unicorn
+- yara
+- upx
+- nasm
+- flasm
+- jd-gui
+- bytecode-viewer
+- cfr
+- procyon-decompiler
+- detect-it-easy
+- rizin
+- iaito

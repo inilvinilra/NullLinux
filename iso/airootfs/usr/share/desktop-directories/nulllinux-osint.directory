@@ -1,5 +1,5 @@
 [Desktop Entry]
 Type=Directory
-Name=OSINT
-Comment=Open source intelligence gathering
-Icon=preferences-system-search
+Name=OSINT & Recon
+Comment=Open source intelligence gathering, reconnaissance, and asset discovery
+Icon=system-search

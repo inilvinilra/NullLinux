@@ -1,32 +1,35 @@
+id: blueteam
 name: Blue Team & Defense
 description: Defensive security, monitoring, IDS/IPS, and incident response
+menu_name: Blue Team
+menu_icon: security-medium
 packages:
-  - wireshark-qt
-  - suricata
-  - zeek
-  - yara
-  - volatility3
-  - clamav
-  - lynis
-  - rkhunter
-  - chkrootkit
-  - tiger
-  - fail2ban
-  - snort
-  - syslog-ng
-  - logwatch
-  - osquery
-  - opensnitch
-  - nftables
-  - ufw
-  - etherape
-  - unhide
-  - firejail
-  - apparmor
-  - audit
-  - inotify-tools
-  - aide
-  - wazuh-agent
-  - tcpdump
-  - arpwatch
-  - logrotate
+- wireshark-qt
+- suricata
+- zeek
+- yara
+- volatility3
+- clamav
+- lynis
+- rkhunter
+- chkrootkit
+- tiger
+- fail2ban
+- snort
+- syslog-ng
+- logwatch
+- osquery
+- opensnitch
+- nftables
+- ufw
+- etherape
+- unhide
+- firejail
+- apparmor
+- audit
+- inotify-tools
+- aide
+- wazuh-agent
+- tcpdump
+- arpwatch
+- logrotate

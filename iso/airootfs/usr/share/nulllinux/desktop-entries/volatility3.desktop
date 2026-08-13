@@ -2,7 +2,9 @@
 Type=Application
 Name=Volatility 3
 Comment=Memory forensics framework
-Exec=konsole -e vol --help
+Exec=konsole --hold -e vol --help
+TryExec=vol
 Icon=drive-harddisk
 Terminal=false
-Categories=NullLinux-Forensics;NullLinux-BlueTeam;
+Categories=System;Security;X-NullLinux-Forensics;X-NullLinux-BlueTeam;
+X-NullLinux-Package=volatility3

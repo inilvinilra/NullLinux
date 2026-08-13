@@ -1,5 +1,5 @@
 [Desktop Entry]
 Type=Directory
-Name=Network
-Comment=Network analysis and traffic tools
-Icon=network-workgroup
+Name=Network Analysis
+Comment=Network monitoring, packet capture, IDS/IPS, and MITM tools
+Icon=network-wired

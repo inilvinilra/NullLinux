@@ -2,7 +2,9 @@
 Type=Application
 Name=Aircrack-ng
 Comment=Wireless network security toolset
-Exec=konsole -e aircrack-ng --help
+Exec=konsole --hold -e aircrack-ng --help
+TryExec=aircrack-ng
 Icon=network-wireless
 Terminal=false
-Categories=NullLinux-Wireless;NullLinux-Network;
+Categories=System;Security;X-NullLinux-Wireless;X-NullLinux-Network;
+X-NullLinux-Package=aircrack-ng

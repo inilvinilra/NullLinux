@@ -1,0 +1,303 @@
+# Canonical source for Null Linux tool launchers.
+# Generated files under iso/airootfs are produced by tools/generate.py.
+aircrack-ng:
+  args: --help
+  binary: aircrack-ng
+  comment: Wireless network security toolset
+  icon: network-wireless
+  name: Aircrack-ng
+  package: aircrack-ng
+  roles:
+  - wireless
+  - network
+  terminal: true
+autopsy:
+  args: ''
+  binary: autopsy
+  comment: Digital forensics platform
+  icon: drive-harddisk
+  name: Autopsy
+  package: autopsy
+  roles:
+  - forensics
+  terminal: false
+binwalk:
+  args: --help
+  binary: binwalk
+  comment: Firmware analysis tool
+  icon: drive-harddisk
+  name: Binwalk
+  package: binwalk
+  roles:
+  - forensics
+  terminal: true
+burpsuite:
+  args: ''
+  binary: burpsuite
+  comment: Web vulnerability scanner
+  icon: utilities-terminal
+  name: Burp Suite
+  package: burpsuite
+  roles:
+  - web
+  terminal: false
+ffuf:
+  args: --help
+  binary: ffuf
+  comment: Fast web fuzzer
+  icon: text-html
+  name: ffuf
+  package: ffuf
+  roles:
+  - web
+  terminal: true
+ghidra:
+  args: ''
+  binary: ghidra
+  comment: Software reverse engineering framework
+  icon: applications-development
+  name: Ghidra
+  package: ghidra
+  roles:
+  - exploitation
+  terminal: false
+gobuster:
+  args: --help
+  binary: gobuster
+  comment: Directory and DNS brute-forcer
+  icon: utilities-terminal
+  name: Gobuster
+  package: gobuster
+  roles:
+  - redteam
+  - web
+  terminal: true
+hashcat:
+  args: --help
+  binary: hashcat
+  comment: Advanced password recovery
+  icon: utilities-terminal
+  name: Hashcat
+  package: hashcat
+  roles:
+  - redteam
+  terminal: true
+hydra:
+  args: -h
+  binary: hydra
+  comment: Network logon cracker
+  icon: utilities-terminal
+  name: Hydra
+  package: hydra
+  roles:
+  - redteam
+  terminal: true
+john:
+  args: --help
+  binary: john
+  comment: Password cracker
+  icon: utilities-terminal
+  name: John the Ripper
+  package: john
+  roles:
+  - redteam
+  terminal: true
+lynis:
+  args: --help
+  binary: lynis
+  comment: Security auditing tool
+  icon: security-high
+  name: Lynis
+  package: lynis
+  roles:
+  - blueteam
+  terminal: true
+macchanger:
+  args: --help
+  binary: macchanger
+  comment: MAC address spoofing utility
+  icon: preferences-system-privacy
+  name: macchanger
+  package: macchanger
+  roles:
+  - opsec
+  terminal: true
+masscan:
+  args: --help
+  binary: masscan
+  comment: Internet-scale port scanner
+  icon: network-workgroup
+  name: Masscan
+  package: masscan
+  roles:
+  - network
+  - redteam
+  terminal: true
+metasploit:
+  args: ''
+  binary: msfconsole
+  comment: Penetration testing framework
+  icon: utilities-terminal
+  name: Metasploit Framework
+  package: metasploit
+  roles:
+  - redteam
+  - exploitation
+  terminal: true
+nikto:
+  args: -Help
+  binary: nikto
+  comment: Web server scanner
+  icon: text-html
+  name: Nikto
+  package: nikto
+  roles:
+  - web
+  terminal: true
+nmap:
+  args: --help
+  binary: nmap
+  comment: Network exploration and security auditing
+  icon: utilities-terminal
+  name: Nmap
+  package: nmap
+  roles:
+  - redteam
+  - network
+  terminal: true
+nuclei:
+  args: --help
+  binary: nuclei
+  comment: Vulnerability scanner with templates
+  icon: text-html
+  name: Nuclei
+  package: nuclei
+  roles:
+  - web
+  - redteam
+  terminal: true
+proxychains:
+  args: --help
+  binary: proxychains4
+  comment: Force TCP connections through proxy
+  icon: preferences-system-privacy
+  name: Proxychains
+  package: proxychains-ng
+  roles:
+  - opsec
+  terminal: true
+radare2:
+  args: -h
+  binary: r2
+  comment: Reverse engineering framework
+  icon: applications-development
+  name: Radare2
+  package: radare2
+  roles:
+  - exploitation
+  terminal: true
+sherlock:
+  args: --help
+  binary: sherlock
+  comment: Find usernames across social networks
+  icon: preferences-system-search
+  name: Sherlock
+  package: sherlock
+  roles:
+  - osint
+  terminal: true
+spiderfoot:
+  args: --help
+  binary: spiderfoot
+  comment: OSINT automation tool
+  icon: preferences-system-search
+  name: SpiderFoot
+  package: spiderfoot
+  roles:
+  - osint
+  terminal: true
+sqlmap:
+  args: -h
+  binary: sqlmap
+  comment: Automatic SQL injection tool
+  icon: utilities-terminal
+  name: sqlmap
+  package: sqlmap
+  roles:
+  - redteam
+  - web
+  terminal: true
+suricata:
+  args: --help
+  binary: suricata
+  comment: Network threat detection engine
+  icon: security-high
+  name: Suricata
+  package: suricata
+  roles:
+  - blueteam
+  - network
+  terminal: true
+tcpdump:
+  args: --help
+  binary: tcpdump
+  comment: Command-line packet analyzer
+  icon: network-workgroup
+  name: tcpdump
+  package: tcpdump
+  roles:
+  - network
+  - blueteam
+  terminal: true
+theharvester:
+  args: --help
+  binary: theHarvester
+  comment: Email and subdomain harvester
+  icon: preferences-system-search
+  name: theHarvester
+  package: theharvester
+  roles:
+  - osint
+  terminal: true
+tor-browser:
+  args: ''
+  binary: torbrowser-launcher
+  comment: Tor Browser launcher
+  icon: preferences-system-privacy
+  name: Tor Browser
+  package: torbrowser-launcher
+  roles:
+  - opsec
+  terminal: false
+volatility3:
+  args: --help
+  binary: vol
+  comment: Memory forensics framework
+  icon: drive-harddisk
+  name: Volatility 3
+  package: volatility3
+  roles:
+  - forensics
+  - blueteam
+  terminal: true
+wifite:
+  args: --help
+  binary: wifite
+  comment: Automated wireless attack tool
+  icon: network-wireless
+  name: Wifite
+  package: wifite
+  roles:
+  - wireless
+  terminal: true
+wireshark:
+  args: ''
+  binary: wireshark
+  comment: Network protocol analyzer
+  icon: wireshark
+  name: Wireshark
+  package: wireshark-qt
+  roles:
+  - blueteam
+  - network
+  terminal: false

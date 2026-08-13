@@ -2,7 +2,9 @@
 Type=Application
 Name=Metasploit Framework
 Comment=Penetration testing framework
-Exec=konsole -e msfconsole
+Exec=konsole --hold -e msfconsole
+TryExec=msfconsole
 Icon=utilities-terminal
 Terminal=false
-Categories=NullLinux-RedTeam;NullLinux-Exploitation;
+Categories=System;Security;X-NullLinux-RedTeam;X-NullLinux-Exploitation;
+X-NullLinux-Package=metasploit

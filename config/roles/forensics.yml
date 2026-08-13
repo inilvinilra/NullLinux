@@ -1,36 +1,39 @@
+id: forensics
 name: Forensics, DFIR & Steganography
 description: Digital forensics, incident response, steganography, and malware triage
+menu_name: Forensics
+menu_icon: drive-harddisk
 packages:
-  - volatility3
-  - autopsy
-  - guymager
-  - sleuthkit
-  - scalpel
-  - ddrescue
-  - python-chepy
-  - perl-image-exiftool
-  - steghide
-  - stegseek
-  - openstego
-  - osquery
-  - binwalk
-  - foremost
-  - chkrootkit
-  - rkhunter
-  - yara
-  - bulk-extractor
-  - testdisk
-  - hashdeep
-  - python-plaso
-  - pngcheck
-  - outguess
-  - dc3dd
-  - libewf
-  - mac-robber
-  - missidentify
-  - unhide
-  - recoverjpeg
-  - ext4magic
-  - galleta
-  - pasco
-  - rifiuti2
+- volatility3
+- autopsy
+- guymager
+- sleuthkit
+- scalpel
+- ddrescue
+- python-chepy
+- perl-image-exiftool
+- steghide
+- stegseek
+- openstego
+- osquery
+- binwalk
+- foremost
+- chkrootkit
+- rkhunter
+- yara
+- bulk-extractor
+- testdisk
+- hashdeep
+- python-plaso
+- pngcheck
+- outguess
+- dc3dd
+- libewf
+- mac-robber
+- missidentify
+- unhide
+- recoverjpeg
+- ext4magic
+- galleta
+- pasco
+- rifiuti2

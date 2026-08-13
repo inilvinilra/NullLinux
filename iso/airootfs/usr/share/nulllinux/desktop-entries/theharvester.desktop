@@ -2,7 +2,9 @@
 Type=Application
 Name=theHarvester
 Comment=Email and subdomain harvester
-Exec=konsole -e theHarvester --help
+Exec=konsole --hold -e theHarvester --help
+TryExec=theHarvester
 Icon=preferences-system-search
 Terminal=false
-Categories=NullLinux-OSINT;
+Categories=System;Security;X-NullLinux-OSINT;
+X-NullLinux-Package=theharvester
