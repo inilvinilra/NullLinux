@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: archlinux:latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install validation tooling
+        run: pacman -Syu --noconfirm shellcheck desktop-file-utils python-yaml
+
+      - name: Validation gate
+        run: ./tools/lint.sh
+
+      - name: Unit tests
+        run: ./tests/run-tests.sh

@@ -6,52 +6,41 @@ on:
       - "v*"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: build-iso-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     container:
       image: archlinux:latest
       options: --privileged
-
     steps:
-      - name: Install build dependencies
-        run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm archiso git base-devel squashfs-tools xorriso syslinux
-
-      - name: Install BlackArch keyring
-        run: |
-          curl -sL https://blackarch.org/strap.sh | bash
-
-      - name: Install Chaotic-AUR keyring
-        run: |
-          pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
-          pacman-key --lsign-key 3056513887B78AEB
-          pacman -U --noconfirm \
-            'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
-            'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
-
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install build dependencies
+        run: pacman -Syu --noconfirm archiso git squashfs-tools xorriso syslinux python-yaml
+
+      - name: Validation gate
+        run: ./tools/lint.sh
+
+      - name: Unit tests
+        run: ./tests/run-tests.sh
 
       - name: Build ISO
-        run: |
-          chmod +x scripts/build-iso.sh
-          scripts/build-iso.sh
+        run: ./scripts/build-iso.sh
 
       - name: Upload ISO artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: null-linux-iso
           path: |
             out/*.iso
             out/*.sha256
           retention-days: 14
-
-      - name: Upload to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            out/*.iso
-            out/*.sha256

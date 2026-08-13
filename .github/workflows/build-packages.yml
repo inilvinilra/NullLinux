@@ -2,65 +2,50 @@ name: Build Packages
 
 on:
   push:
+    branches: [main]
     paths:
-      - "src/**/PKGBUILD"
-  pull_request:
-    paths:
-      - "src/**/PKGBUILD"
+      - "src/roles/**/PKGBUILD"
+      - "src/tools/**/PKGBUILD"
   workflow_dispatch:
 
+# Pull requests deliberately do not build packages: a PKGBUILD from a fork is
+# untrusted code, and makepkg would execute it. PRs are validated by ci.yml.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-packages-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      packages: ${{ steps.detect.outputs.packages }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Detect changed PKGBUILDs
-        id: detect
-        run: |
-          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'src/**/PKGBUILD' | \
-            xargs -I{} dirname {} | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          echo "packages=${CHANGED}" >> "$GITHUB_OUTPUT"
-
   build:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.packages != '[]'
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     container:
       image: archlinux:latest
-      options: --privileged
-
-    strategy:
-      matrix:
-        package: ${{ fromJson(needs.detect-changes.outputs.packages) }}
-      fail-fast: false
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install build dependencies
-        run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel
+        run: pacman -Syu --noconfirm base-devel namcap
 
-      - name: Setup build user
+      - name: Build and inspect every metapackage
         run: |
           useradd -m builder
-          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
           chown -R builder:builder .
+          failed=0
+          for dir in src/roles/*/ src/tools/*/; do
+            [[ -f "$dir/PKGBUILD" ]] || continue
+            echo "── $dir"
+            su builder -c "cd '$dir' && makepkg -f --noconfirm --nodeps --noextract" || { failed=1; continue; }
+            su builder -c "cd '$dir' && namcap PKGBUILD" || true
+          done
+          exit $failed
 
-      - name: Build package
-        run: |
-          cd "${{ matrix.package }}"
-          su builder -c 'makepkg -sf --noconfirm'
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload packages
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: pkg-${{ hashFiles(format('{0}/PKGBUILD', matrix.package)) }}
-          path: ${{ matrix.package }}/*.pkg.tar.zst
+          name: nulllinux-metapackages
+          path: src/**/*.pkg.tar.zst
           retention-days: 30
