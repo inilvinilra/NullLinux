@@ -175,6 +175,18 @@ done < <(find iso/airootfs/usr/bin iso/airootfs/usr/share/nulllinux/lib \
 
 [[ $drift -eq 0 ]] && pass "generated files current; no executable is committed twice"
 
+check "the release image cannot install unattended"
+# The test overlay adds a service that erases a disk on a boot parameter. If it
+# ever appears in the release profile or in a staged release image, that is a
+# release-blocking hazard, not a convenience.
+leak="$(grep -rl 'nulllinux.autoinstall' iso/ 2>/dev/null)"
+if [[ -n "$leak" ]]; then
+  fail "autoinstall hooks present in the release profile:"
+  printf '       %s\n' $leak
+else
+  pass "no autoinstall hook in the release profile"
+fi
+
 check "staged profile is complete"
 staged="$(mktemp -d)"
 if ./tools/stage-profile.sh "$staged" >/dev/null 2>&1; then
