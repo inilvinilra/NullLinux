@@ -32,6 +32,7 @@ file_permissions=(
   ["/usr/bin/null-install"]="0:0:755"
   ["/usr/bin/null-setup"]="0:0:755"
   ["/usr/bin/null-repo"]="0:0:755"
+  ["/usr/bin/null-apply-branding"]="0:0:755"
   ["/usr/bin/null-setup-firstrun"]="0:0:755"
   ["/usr/share/nulllinux/hooks/update-desktop-entries.sh"]="0:0:755"
   ["/usr/share/nulllinux/installer/postinstall.sh"]="0:0:755"

@@ -280,7 +280,7 @@ do_identity() {
   install -Dm644 "$LIB_DIR"/*.sh -t "$TARGET/usr/share/nulllinux/lib/" || return 1
 
   local f
-  for f in null-toolkit null-setup null-setup-firstrun; do
+  for f in null-toolkit null-setup null-setup-firstrun null-repo null-apply-branding; do
     [[ -f "/usr/bin/$f" ]] && install -Dm755 "/usr/bin/$f" "$TARGET/usr/bin/$f"
   done
 

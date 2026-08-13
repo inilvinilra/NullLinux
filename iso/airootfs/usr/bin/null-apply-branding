@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Apply Null Linux desktop branding once per user.
+#
+# The panel layout in the skel config is applied by Plasma, but a desktop
+# containment belongs to an activity and Plasma recreates it on first login,
+# which drops the wallpaper set there. plasma-apply-wallpaperimage is the
+# supported way to set it, so branding is applied through that instead of by
+# guessing at containment numbering.
+set -uo pipefail
+
+WALLPAPER="/usr/share/wallpapers/NullLinux/contents/images/NulLinuxBackround.png"
+STATE="${XDG_CONFIG_HOME:-$HOME/.config}/nulllinux-branding-applied"
+
+[[ -f "$STATE" ]] && exit 0
+[[ -f "$WALLPAPER" ]] || exit 0
+command -v plasma-apply-wallpaperimage >/dev/null 2>&1 || exit 0
+
+# Plasma must be up before it will accept the change.
+for _ in {1..30}; do
+  if qdbus org.kde.plasmashell /PlasmaShell >/dev/null 2>&1; then break; fi
+  sleep 2
+done
+
+if plasma-apply-wallpaperimage "$WALLPAPER" >/dev/null 2>&1; then
+  mkdir -p "$(dirname "$STATE")"
+  : > "$STATE"
+fi
+exit 0

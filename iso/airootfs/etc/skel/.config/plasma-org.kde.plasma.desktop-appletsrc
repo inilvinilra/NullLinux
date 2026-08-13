@@ -11,7 +11,7 @@ plugin=org.kde.desktopcontainment
 wallpaperplugin=org.kde.image
 
 [Containments][1][Wallpaper][org.kde.image][General]
-Image=file:///usr/share/wallpapers/NullLinux/contents/images/NulLinuxBackround.png
+Image=/usr/share/wallpapers/NullLinux/contents/images/NulLinuxBackround.png
 FillMode=2
 
 [Containments][2]

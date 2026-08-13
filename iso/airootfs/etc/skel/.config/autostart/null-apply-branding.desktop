@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Null Linux Branding
+Comment=Applies the Null Linux desktop wallpaper once
+Exec=null-apply-branding
+TryExec=null-apply-branding
+Icon=preferences-desktop-wallpaper
+Terminal=false
+NoDisplay=true
+X-KDE-autostart-phase=2
