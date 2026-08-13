@@ -122,6 +122,14 @@ docker run -it nulllinux
 - SSH: daemon installed but not enabled; nothing listens by default
 - Setup wizard runs once on first login and stays available as `null-setup`
 
+## Documentation
+
+- [Architecture](docs/architecture.md) — components, invariants, known debt
+- [Role catalog](docs/roles.md) — generated from `config/roles/`
+- [Package sources](docs/package-sources.md) — repository policy and trust
+- [Threat model](docs/threat-model.md) · [Privacy](docs/privacy.md)
+- [Testing](docs/testing.md) · [Baseline audit](docs/audit-baseline.md)
+
 ## Privacy
 
 Null Linux collects nothing: no telemetry, no analytics, no crash reports, no
