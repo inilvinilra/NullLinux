@@ -1,0 +1,15 @@
+[Unit]
+Description=Null Linux unattended install (TEST IMAGE ONLY)
+ConditionKernelCommandLine=nulllinux.autoinstall
+After=network.target systemd-udev-settle.service
+Wants=systemd-udev-settle.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/nulllinux-autoinstall
+StandardOutput=journal+console
+StandardError=journal+console
+TimeoutStartSec=1800
+
+[Install]
+WantedBy=multi-user.target
