@@ -20,8 +20,23 @@ fi
 mkdir -p /run/nulltest
 mount -o ro "$ANSWERS_DEV" /run/nulltest || { MARK "FAIL cannot mount answers"; systemctl poweroff; exit 1; }
 
+# The image is a harness. When the answers disk carries a build of the tools,
+# test that build rather than the one baked into the ISO, so a code change does
+# not require a new image.
+INSTALLER=null-install
+declare -a ENV_OVERRIDES=()
+if [[ -x /run/nulltest/bin/null-install ]]; then
+  INSTALLER=/run/nulltest/bin/null-install
+  ENV_OVERRIDES=(
+    "NULL_LIB_DIR=/run/nulltest/lib"
+    "NULL_SHARE_DIR=/run/nulltest/installer"
+    "NULL_BIN_DIR=/run/nulltest/bin"
+  )
+  MARK "USING_INJECTED_BUILD"
+fi
+
 MARK "START"
-if null-install --unattended /run/nulltest/answers > /dev/console 2>&1; then
+if env "${ENV_OVERRIDES[@]}" "$INSTALLER" --unattended /run/nulltest/answers > /dev/console 2>&1; then
   MARK "INSTALL_OK"
 else
   MARK "INSTALL_FAILED status=$?"

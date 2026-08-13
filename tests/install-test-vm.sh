@@ -9,6 +9,7 @@
 #   3. boot the target disk with no installation medium and capture the screen
 set -uo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="${NULL_TEST_OUT:-/var/tmp/nulllinux-vmtest}"
 TEST_ISO="${1:-$(find /var/tmp/nulllinux-testout -maxdepth 1 -name '*.iso' 2>/dev/null | head -1)}"
 DISK_GB="${NULL_TEST_SIZE_GB:-24}"
@@ -49,12 +50,25 @@ timezone=UTC
 user_password=$password
 third_party_repos=false
 EOF
-truncate -s 8M "$ANSWERS_IMG"
+# Ship the working tree's tools alongside the answers so the run tests current
+# code, not whatever was baked into the image.
+mkdir -p "$answers_dir/bin" "$answers_dir/lib" "$answers_dir/installer"
+install -m755 "$ROOT_DIR/src/installer/null-install"               "$answers_dir/bin/"
+install -m755 "$ROOT_DIR/src/tools/null-toolkit/null-toolkit"      "$answers_dir/bin/"
+install -m755 "$ROOT_DIR/src/tools/null-setup/null-setup"          "$answers_dir/bin/"
+install -m755 "$ROOT_DIR/src/tools/null-setup/null-setup-firstrun" "$answers_dir/bin/"
+install -m755 "$ROOT_DIR/src/tools/null-setup/null-apply-branding" "$answers_dir/bin/"
+install -m755 "$ROOT_DIR/src/tools/null-repo/null-repo"            "$answers_dir/bin/"
+install -m644 "$ROOT_DIR"/src/lib/*.sh                             "$answers_dir/lib/"
+install -m755 "$ROOT_DIR/src/installer/postinstall.sh"             "$answers_dir/installer/"
+install -m644 "$ROOT_DIR/iso/airootfs/usr/share/nulllinux/installer/os-release" \
+              "$ROOT_DIR/iso/airootfs/usr/share/nulllinux/installer/sddm.conf" \
+              "$answers_dir/installer/"
+
+command -v mcopy >/dev/null || die "mtools is required (pacman -S mtools)"
+truncate -s 32M "$ANSWERS_IMG"
 mkfs.vfat -n NULLANSWERS "$ANSWERS_IMG" >/dev/null
-mcopy -i "$ANSWERS_IMG" "$answers_dir/answers" ::answers 2>/dev/null || {
-  command -v mcopy >/dev/null || die "mtools is required to write the answers disk (pacman -S mtools)"
-  die "could not write the answers disk"
-}
+mcopy -i "$ANSWERS_IMG" -s "$answers_dir"/* :: || die "could not write the answers disk"
 rm -rf "$answers_dir"
 
 ACCEL=(-machine "type=q35")
