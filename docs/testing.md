@@ -1,5 +1,19 @@
 # Testing
 
+Three layers, in the order you should reach for them. Each one costs roughly
+twenty times the previous, and each one answers a question the cheaper layer
+cannot.
+
+| Layer | Cost | Answers |
+|---|---|---|
+| Gate and unit tests | seconds | Do the rules hold? Does the logic behave? |
+| Installer control flow | seconds | Does the installer do the right thing when a step fails? |
+| VM install and boot | ~40 minutes | Does an installed system actually boot? |
+
+Nothing above the first layer is a substitute for the one below it, and the top
+layer is too slow to iterate on. A bug that a cheaper layer could have caught
+should be given a test at that layer.
+
 ## What runs anywhere
 
 ```bash
@@ -10,6 +24,22 @@
 The unit tests replace pacman with a stub, so install results, role state,
 removal ownership, input validation and partition naming are all exercised
 without touching the system.
+
+`run-tests.sh` also runs `tests/installer-unattended-test.sh`, which drives the
+installer's whole unattended path with every external command stubbed. It asserts
+what the VM test is too slow to iterate on:
+
+- an unattended run never opens a dialog — one nobody can dismiss does not fail
+  an install, it hangs it
+- a failure part-way through unwinds its mounts in reverse order
+- an install that does not verify is reported as a failure, never as a success
+- a device the running system is using is refused before anything is mounted
+
+The target device is a node faked by `fakeroot`: it satisfies `-b` and refers to
+nothing. Each case runs in its own mount namespace with a private `/sys`, so the
+UEFI check runs unmodified on a build machine that did not boot via UEFI. Where
+neither `fakeroot` nor unprivileged user namespaces are available, the suite
+reports itself skipped rather than passing silently.
 
 ## What needs an Arch host
 
@@ -34,18 +64,31 @@ Automated, with evidence:
 
 ```bash
 ./tests/qemu-boot-test.sh                 # live boot, writes a screenshot
-sudo ./tests/install-test.sh              # install to a loop device, then boot it
+sudo ./tests/build-test-iso.sh            # a throwaway image that installs itself
+./tests/install-test-vm.sh                # install inside a VM, then boot the result
 ```
 
 `qemu-boot-test.sh` boots the ISO headless under OVMF and captures the
 framebuffer. QEMU exits cleanly whether or not the guest booted, so inspect the
 screenshot; a successful live boot shows the Plasma desktop.
 
-`install-test.sh` creates its own file-backed loop device, installs to it
-unattended, verifies the result offline, then boots the disk with no
-installation medium attached.
+`install-test-vm.sh` does everything destructive inside QEMU, against a virtual
+disk, so it needs no loop device and no privileged access to the host's block
+layer. It boots the test image with a target disk and an answers disk attached,
+waits for the guest to install itself and power off, then boots the target disk
+alone and captures the screen.
 
-**Never test installation against a real disk.** Both scripts create and destroy
+The answers disk also carries the working tree's whole payload — tools, role
+data, desktop entries, the KDE skel — laid out exactly as it sits on the live
+medium. The installer is pointed at it with `NULL_SRC_ROOT`, so a change to any
+of them is tested without rebuilding the image. The test image only has to be a
+working harness. It prints `USING_INJECTED_BUILD` on the console when it takes
+this path, so a run can never quietly test the wrong code.
+
+`install-test.sh` is the older loop-device version, kept for a host where
+hardware virtualisation is unavailable. Prefer the VM.
+
+**Never test installation against a real disk.** These scripts create and destroy
 their own images, and the installer independently refuses any device backing a
 mounted filesystem.
 

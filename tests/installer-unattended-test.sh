@@ -31,8 +31,19 @@ command -v fakeroot >/dev/null 2>&1 || {
   printf '\n%d passed, %d failed, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
   exit 0
 }
-if [[ ! -d /sys/firmware/efi/efivars ]]; then
-  skip "installer unattended path" "this host did not boot in UEFI mode"
+
+# The installer refuses to run on a machine that did not boot via UEFI, and it
+# is right to. Rather than weaken that check for the sake of a test, or skip the
+# suite on every build machine that is not itself UEFI, give each case a private
+# /sys with the firmware directory present. Nothing outside the namespace sees
+# it, and the check under test runs unmodified.
+UNSHARE=()
+if unshare -rm true 2>/dev/null; then
+  UNSHARE=(unshare -rm)
+  export NULL_TEST_FAKE_SYS=1
+elif [[ ! -d /sys/firmware/efi/efivars ]]; then
+  skip "installer unattended path" \
+    "no unprivileged user namespaces and this host did not boot in UEFI mode"
   printf '\n%d passed, %d failed, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
   exit 0
 fi
@@ -157,7 +168,11 @@ INNER
   env -u NULL_ROLE_DIR -u NULL_STATE_DIR -u NULL_PACMAN -u NULL_PACMAN_PREFIX \
       -u NULL_LIB_DIR -u NULL_SHARE_DIR -u NULL_DATA_DIR -u NULL_SKEL_DIR \
       -u NULL_BIN_DIR \
-      "$@" fakeroot bash "$case_dir/script" 2>&1
+      "$@" "${UNSHARE[@]}" bash -c '
+        if [[ -n "${NULL_TEST_FAKE_SYS:-}" ]]; then
+          mount -t tmpfs none /sys && mkdir -p /sys/firmware/efi/efivars
+        fi
+        exec fakeroot bash "$1"' _ "$case_dir/script" 2>&1
 }
 
 exit_code_of() { sed -n 's/^EXIT=//p' <<<"$1" | tail -1; }

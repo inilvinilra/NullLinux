@@ -27,11 +27,13 @@ Done and enforced by `tools/lint.sh`:
 - [x] Build no longer executes piped remote scripts or edits host configuration
 - [x] ISO profile actually builds
 
+- [x] Installer failure-cleanup and verification-failure tests, run in seconds
+      against stubbed tools rather than only inside a VM
+
 Remaining before P0 is complete:
 
 - [ ] Automated UEFI live-boot test in CI
 - [ ] Automated install-to-disk test, reboot from the installed disk
-- [ ] Installer cancellation and failure-cleanup tests
 - [ ] Package availability check for all catalogued packages
 
 ## P1 — Trust and recovery

@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install build dependencies
-        run: pacman -Syu --noconfirm archiso git squashfs-tools xorriso syslinux python-yaml
+        run: pacman -Syu --noconfirm archiso git squashfs-tools xorriso syslinux python-yaml fakeroot util-linux
 
       - name: Validation gate
         run: ./tools/lint.sh
