@@ -119,7 +119,8 @@ docker run -it nulllinux
 
 Null Linux collects nothing: no telemetry, no analytics, no crash reports, no
 identifiers. See [docs/privacy.md](docs/privacy.md) for exactly what connects to
-the network and when.
+the network and when, and [docs/threat-model.md](docs/threat-model.md) for what
+this system does and does not defend against.
 
 ## Status
 
