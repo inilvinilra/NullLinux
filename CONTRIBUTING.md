@@ -24,7 +24,9 @@ both on every pull request.
 
 ## Project Structure
 
-- `iso/` — archiso profile (packages, boot config, airootfs overlay)
+- `iso/` — archiso profile: live-only configuration, packages and boot config.
+  It contains **no copies of anything in `src/`**; `tools/stage-profile.sh`
+  assembles the full profile at build time.
 - `src/roles/` — metapackage PKGBUILDs for each security role
 - `src/tools/` — null-toolkit CLI source
 - `src/installer/` — null-install TUI installer source

@@ -19,18 +19,25 @@ role-based security tooling, and access to Arch, BlackArch, and Chaotic-AUR repo
 ## Repository Layout
 
 ```
-iso/                archiso profile, packages, boot config, live rootfs
+config/             canonical manifests — roles and tool launchers
 src/
-  roles/            metapackage PKGBUILDs per security role
-  tools/            null-toolkit CLI
-  installer/        null-install TUI installer
-config/roles/       YAML role definitions
-scripts/            build, test, and QEMU helpers
-docs/               documentation and roadmap
-branding/           identity notes
-.github/workflows/  CI/CD (ISO build, package build, update checks)
-.nvchecker/         upstream version tracking
+  lib/              shared package engine and input validation
+  installer/        null-install and the script it runs inside the target
+  tools/            null-toolkit, null-setup, null-repo
+  roles/            generated role metapackages
+iso/                archiso profile: live-only config, packages, boot config
+tools/              validation gate, generator, profile staging
+tests/              unit tests, boot test, install test
+scripts/            build and QEMU helpers
+docs/               documentation, generated role catalog
+branding/           identity and artwork provenance
 ```
+
+Files under `iso/airootfs/usr/share/nulllinux/roles/`, `src/roles/*/PKGBUILD`,
+`iso/airootfs/usr/share/nulllinux/desktop-entries/` and `docs/roles.md` are
+**generated** from `config/` by `tools/generate.py`. Executables live only in
+`src/`; `tools/stage-profile.sh` assembles the full ISO profile at build time,
+so no program is stored twice.
 
 ## Build Requirements
 
