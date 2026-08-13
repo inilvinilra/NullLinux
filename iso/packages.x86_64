@@ -108,13 +108,7 @@ noto-fonts
 adwaita-icon-theme
 papirus-icon-theme
 
-# ── AUR helpers ────────────────────────────────────────────
-paru
-yay
-
-# ── Keyrings & mirrors ─────────────────────────────────────
+# ── Keyrings ───────────────────────────────────────────────
+# Only Arch's keyring ships in the base image. Third-party repositories are
+# enabled deliberately with null-repo, which verifies a full fingerprint.
 archlinux-keyring
-blackarch-keyring
-blackarch-mirrorlist
-chaotic-keyring
-chaotic-mirrorlist

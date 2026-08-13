@@ -35,7 +35,8 @@ mark_first_run_done() {
 
 summary_text() {
   local result="$1"
-  local text="Result: $(result_name "$result")\n\n"
+  local text
+  text="Result: $(result_name "$result")\n\n"
   text+="Installed:        ${#PKG_INSTALLED[@]}\n"
   text+="Already present:  ${#PKG_ALREADY[@]}\n"
   text+="Unresolved:       ${#PKG_FAILED[@]}\n"

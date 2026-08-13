@@ -47,7 +47,7 @@ EOF
 chmod 0440 /etc/sudoers.d/10-null
 
 pacman-key --init
-pacman-key --populate archlinux blackarch chaotic
+pacman-key --populate archlinux
 
 systemctl enable NetworkManager.service
 systemctl disable NetworkManager-wait-online.service || true

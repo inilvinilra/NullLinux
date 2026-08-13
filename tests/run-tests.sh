@@ -219,10 +219,30 @@ is "dry-run keeps the shared package" "1" "$(grep -c 'hydra' "$TMP/out")"
 is "dry-run removes only the exclusive package" "1" "$(grep -cE '^    - nmap$' "$TMP/out")"
 is "dry-run says nothing changed" "1" "$(grep -c 'nothing was changed' "$TMP/out")"
 is "dry-run left the database intact" "3" "$(wc -l < "$TMP/db")"
-is "dry-run left role state intact" "0" "$(test -f "$TMP/state/redteam.state"; echo $?)"
+state_kept=1; [[ -f "$TMP/state/redteam.state" ]] && state_kept=0
+is "dry-run left role state intact" "0" "$state_kept"
 
 run_tk info redteam; is "info runs without root" "0" "$?"
 is "info counts installed packages" "1" "$(grep -c '2 of 2 installed' "$TMP/out")"
+
+# ── repository trust ─────────────────────────────────────────────────────────
+group "null-repo fingerprint handling"
+cp "$ROOT_DIR/iso/pacman.conf" "$TMP/pacman.conf"
+NULL_PACMAN_CONF="$TMP/pacman.conf" source "$ROOT_DIR/src/tools/null-repo/null-repo" >/dev/null 2>&1
+
+is "full fingerprint accepted" "4AA4767BBC9C4B1D18AE28B77F2D434B9741E8AC" \
+   "$(normalise_fpr '4AA4767BBC9C4B1D18AE28B77F2D434B9741E8AC')"
+is "spaced fingerprint normalised" "4AA4767BBC9C4B1D18AE28B77F2D434B9741E8AC" \
+   "$(normalise_fpr '4AA4 767B BC9C 4B1D 18AE  28B7 7F2D 434B 9741 E8AC')"
+is "lowercase normalised" "4AA4767BBC9C4B1D18AE28B77F2D434B9741E8AC" \
+   "$(normalise_fpr '4aa4767bbc9c4b1d18ae28b77f2d434b9741e8ac')"
+is "long key id refused" "1" "$(normalise_fpr '3056513887B78AEB' >/dev/null; echo $?)"
+is "short key id refused" "1" "$(normalise_fpr '87B78AEB' >/dev/null; echo $?)"
+is "non-hex refused" "1" "$(normalise_fpr 'ZZZ4767BBC9C4B1D18AE28B77F2D434B9741E8AC' >/dev/null; echo $?)"
+is "empty refused" "1" "$(normalise_fpr '' >/dev/null; echo $?)"
+is "known repo recognised" "0" "$(known_repo blackarch; echo $?)"
+is "unknown repo rejected" "1" "$(known_repo notarepo; echo $?)"
+is "repo starts disabled" "1" "$(is_enabled blackarch; echo $?)"
 
 printf '\n%d passed, %d failed\n' "$pass_count" "$fail_count"
 [[ $fail_count -eq 0 ]]

@@ -67,20 +67,21 @@ fi
 echo "VM: ${VM_RAM}MB RAM, ${VM_CORES} vCPUs, KVM=$([ ${#ACCEL_ARGS[@]} -gt 0 ] && echo yes || echo no)" >&2
 echo "Display: $QEMU_DISPLAY  ISO: $ISO_PATH" >&2
 
+# shellcheck disable=SC2034  # consumed by run-qemu-*.sh, which source this file
 COMMON_QEMU_ARGS=(
   -m "$VM_RAM"
-  -smp "$VM_CORES",sockets=1,cores="$VM_CORES",threads=1
+  -smp "${VM_CORES},sockets=1,cores=${VM_CORES},threads=1"
   "${ACCEL_ARGS[@]}"
-  -drive file="$DISK_IMG",format=qcow2,if=virtio,cache=writeback,discard=unmap
+  -drive "file=${DISK_IMG},format=qcow2,if=virtio,cache=writeback,discard=unmap"
   -cdrom "$ISO_PATH"
-  -boot order=cd,menu=on
+  -boot "order=cd,menu=on"
   "${DISPLAY_VGA[@]}"
-  -spice disable-ticketing=on
+  -spice "disable-ticketing=on"
   -device virtio-serial-pci
-  -chardev spicevmc,id=vdagent,name=vdagent
-  -device virtserialport,chardev=vdagent,name=com.redhat.spice.0
-  -device virtio-net-pci,netdev=n1
-  -netdev user,id=n1
+  -chardev "spicevmc,id=vdagent,name=vdagent"
+  -device "virtserialport,chardev=vdagent,name=com.redhat.spice.0"
+  -device "virtio-net-pci,netdev=n1"
+  -netdev "user,id=n1"
   -device intel-hda -device hda-duplex
   "${USB_ARGS[@]}"
 )
