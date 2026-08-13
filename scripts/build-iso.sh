@@ -7,8 +7,17 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROFILE_DIR="$ROOT_DIR/iso"
-WORK_DIR="${NULL_WORK_DIR:-$ROOT_DIR/work}"
-OUT_DIR="${NULL_OUT_DIR:-$ROOT_DIR/out}"
+# mkarchiso builds a chroot inside the work directory, and arch-chroot cannot
+# handle a path containing whitespace. Fall back to a safe location instead of
+# failing halfway through a long build.
+DEFAULT_WORK="$ROOT_DIR/work"
+DEFAULT_OUT="$ROOT_DIR/out"
+if [[ "$ROOT_DIR" =~ [[:space:]] ]]; then
+  DEFAULT_WORK="/var/tmp/nulllinux-work"
+  DEFAULT_OUT="/var/tmp/nulllinux-out"
+fi
+WORK_DIR="${NULL_WORK_DIR:-$DEFAULT_WORK}"
+OUT_DIR="${NULL_OUT_DIR:-$DEFAULT_OUT}"
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
@@ -20,7 +29,13 @@ fi
 
 "$ROOT_DIR/tools/lint.sh" || die "validation gate failed; refusing to build"
 
+if [[ "$WORK_DIR" =~ [[:space:]] || "$OUT_DIR" =~ [[:space:]] ]]; then
+  die "work and output paths must not contain whitespace (arch-chroot limitation): $WORK_DIR"
+fi
+
 mkdir -p "$WORK_DIR" "$OUT_DIR"
+printf 'Work directory:   %s\n' "$WORK_DIR"
+printf 'Output directory: %s\n' "$OUT_DIR"
 
 printf 'Building from %s\n' "$PROFILE_DIR"
 mkarchiso -v -w "$WORK_DIR" -o "$OUT_DIR" "$PROFILE_DIR"
