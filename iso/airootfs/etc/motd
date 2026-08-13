@@ -1,11 +1,14 @@
 
-  Welcome to Null Linux — Arch-based Cybersecurity Distribution
+  Welcome to Null Linux — an Arch-based security workstation
 
   Quick commands:
-    null-toolkit list  Show available security roles
-    null-install       Install Null Linux to disk
-    sudo pacman -Syu   Update the system
+    null-setup           Choose and install tool sets
+    null-toolkit list    Show roles and their real status
+    null-repo status     Show third-party repository state
+    null-install         Install Null Linux to disk
+    sudo pacman -Syu     Full system upgrade
 
-  Repos: Arch + BlackArch + Chaotic-AUR
-  Docs:  https://github.com/inilvinilra/NullLinux
+  Repositories: official Arch only. BlackArch and Chaotic-AUR are opt-in;
+  see 'null-repo' and docs/package-sources.md.
 
+  Docs: https://github.com/inilvinilra/NullLinux

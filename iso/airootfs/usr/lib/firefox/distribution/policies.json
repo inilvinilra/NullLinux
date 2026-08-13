@@ -12,14 +12,13 @@
     "OverrideFirstRunPage": "",
     "OverridePostUpdatePage": "",
     "Homepage": {
-      "URL": "https://github.com/inilvinilra/NullLinux",
+      "URL": "about:blank",
       "Locked": false,
       "StartPage": "homepage"
     },
     "SearchBar": "unified",
     "DNSOverHTTPS": {
-      "Enabled": true,
-      "ProviderURL": "https://mozilla.cloudflare-dns.com/dns-query",
+      "Enabled": false,
       "Locked": false
     },
     "EnableTrackingProtection": {
