@@ -205,30 +205,47 @@ Dependency order. Each step ends with `./tools/lint.sh` plus its own tests.
 
 1. **Validation gate** — encode the rules so regressions are mechanical. *(done)*
 2. **Canonical identity** — one owner string, gate-enforced. *(done)*
-3. **Single source of truth** — `manifests/roles/*.yml` as the only role data; generate
-   `roles.d/`, PKGBUILD `depends()`, KDE categories, docs counts; CI fails on drift.
-4. **Package engine rewrite** — no `-Sy`; structured
-   `complete|partial|failed|canceled|unchanged`; verify every install with `pacman -Qi`; required
-   failures block the marker; drop the language-manager fallback.
-5. **Ownership graph + safe removal** — derive state from package state; dry-run; never remove
-   shared or independently installed packages; one state convention.
-6. **One-shot first run** — systemd user unit with `ConditionPathExists`, manually relaunchable.
-7. **Installer safety** — input validation, no interpolation of user data into generated scripts,
-   structured device enumeration, live-medium exclusion, typed destructive confirmation, `trap`
-   cleanup, install plan with per-step verification, honest completion report.
-8. **Installed-system consistency** — package identity/KDE defaults/branding/security config
-   instead of copying live files; CPU-specific microcode; hardened SSH config; no live autologin.
-9. **Build & CI hardening** — no host mutation, no `curl | bash`, full fingerprints, pinned
-   action SHAs, least-privilege tokens, no fork-PR package builds.
-10. **Desktop metadata** — `X-NullLinux-*` categories, `TryExec`, removal hook, safe launchers,
-    categories for all 13 roles.
+3. **Single source of truth** — `config/` is canonical; `tools/generate.py` produces runtime
+   role files, PKGBUILDs, KDE categories, the menu and the catalog; the gate runs `--check`. *(done)*
+4. **Package engine rewrite** — `src/lib/nulllinux-pkg.sh`: no `-Sy`, structured results,
+   database-verified installs, no language-manager fallback. *(done)*
+5. **Ownership graph + safe removal** — state derived from the package database, `--dry-run`,
+   shared and user-owned packages preserved, one state convention. *(done)*
+6. **One-shot first run** — `null-setup-firstrun` plus an autostart condition; `null-setup`
+   stays runnable by hand. *(done)*
+7. **Installer safety** — validation, env-passed values into a static postinstall script,
+   filtered device enumeration, live-medium exclusion, typed confirmation, `trap` cleanup,
+   per-step verification, honest completion. *(done)*
+8. **Installed-system consistency** — identity, full KDE skel, sshd drop-in and tooling
+   installed deliberately; CPU-specific microcode; no live autologin or NOPASSWD sudo. *(done;
+   packaging these as real Null Linux packages remains P1)*
+9. **Build & CI hardening** — no host mutation, no `curl | bash`, pinned action SHAs,
+   read-only tokens, timeouts, concurrency, no fork-PR package builds. *(done)*
+10. **Desktop metadata** — `X-NullLinux-*` categories, `TryExec`, idempotent add/remove hook,
+    non-privileged launchers, categories for all 13 roles. *(done)*
 11. **QEMU integration tests** — UEFI live boot, UEFI install + reboot from disk, cancellation,
     failure cleanup.
 
 P1 and later (encryption/UKI/Secure Boot, signed repository, Qt control center, threat model,
 hardware matrix) stay untouched until the P0 gate is green.
 
-## 5. Decisions recorded in this change set
+## 5. P0 status
+
+`./tools/lint.sh` passes (one check skipped: ShellCheck is not installed here).
+`./tests/run-tests.sh` reports 73 passing, 0 failing.
+
+Still open before P0 can be called complete:
+
+- **No ISO has been built and no image has been booted.** Every boot-related claim in this
+  document is unverified. `mkarchiso` and QEMU are not available in the audit environment.
+- ShellCheck has never run over the tree.
+- Live session still defaults to Plasma X11. Wayland is the intended default, but switching it
+  without a boot test would be an untested change to the one path that must always work.
+- Null Linux identity, KDE defaults and tooling are installed by the installer, not yet shipped
+  as signed packages.
+- No signing, no SBOM, no reproducibility work; the ISO is unsigned.
+
+## 6. Decisions recorded in this change set
 
 **Validation gate in Bash, not a typed language.** The rules are file-shaped and must run on a
 bare Arch host and in CI with no toolchain. Migration to a typed implementation is warranted for
@@ -238,6 +255,22 @@ the *installer planner* (stateful, security-sensitive), not for a linter. Rollba
 **Canonical owner = `inilvinilra/NullLinux`,** taken from the project brief. This is a branding
 decision the maintainer owns; it is a single reversible `sed`, and `tools/lint.sh` honours
 `NULL_CANONICAL_REPO` if it changes.
+
+**`update-check.yml` removed rather than repaired.** It tracked a repository that is not this
+project, had an empty `oldver.json` so `nvcmp` had no baseline, and ended in `git push || true`,
+which hid its own failures. Shipping a scheduled job that silently does nothing is worse than not
+shipping one. `.nvchecker/` is kept as the tracking definition; automation returns in P1 with a
+token, a real baseline and no auto-commit.
+
+**Third-party repositories are opt-in at install time.** BlackArch and Chaotic-AUR remain
+configured on the live medium, where their presence is disclosed, but the installer asks before
+enabling them on a target and defaults to no. Most role packages come from BlackArch, so a user
+who declines will see unresolved packages — which the engine now reports honestly instead of
+hiding.
+
+**Metapackages own no files.** Previously they dropped a marker into the same directory the role
+manifests lived in, using a different convention from the role manager, so a role installed by
+metapackage was invisible to `null-toolkit`. Role state is now read from the package database.
 
 **Gate fails loudly rather than warning.** A warning-only linter on a project that already
 documents unfinished work as "DONE" would not change outcomes.
