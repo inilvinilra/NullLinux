@@ -6,6 +6,9 @@ TARGET="${NULL_TARGET:-/mnt}"
 BACKTITLE="Null Linux Installer v${VERSION}"
 LIB_DIR="${NULL_LIB_DIR:-/usr/share/nulllinux/lib}"
 SHARE_DIR="${NULL_SHARE_DIR:-/usr/share/nulllinux/installer}"
+DATA_DIR="${NULL_DATA_DIR:-/usr/share/nulllinux}"
+SKEL_DIR="${NULL_SKEL_DIR:-/etc/skel}"
+BIN_DIR="${NULL_BIN_DIR:-/usr/bin}"
 LOG="/var/log/null-install.log"
 
 # shellcheck source=../lib/nulllinux-validate.sh
@@ -284,41 +287,46 @@ do_fstab() { genfstab -U "$TARGET" > "$TARGET/etc/fstab"; }
 # Identity, defaults and tooling are installed as files we own, not copied
 # opportunistically out of the live filesystem.
 do_identity() {
+  # Required: without any of these the installed system is not Null Linux, and
+  # saying so afterwards is better than shipping a system missing its desktop.
   install -Dm644 "$SHARE_DIR/os-release" "$TARGET/etc/os-release" || return 1
+  install -Dm644 "$SHARE_DIR/sddm.conf" "$TARGET/etc/sddm.conf.d/10-null-linux.conf" || return 1
 
   install -dm755 "$TARGET/usr/share/nulllinux/lib"
   install -Dm644 "$LIB_DIR"/*.sh -t "$TARGET/usr/share/nulllinux/lib/" || return 1
 
   local f
   for f in null-toolkit null-setup null-setup-firstrun null-repo null-apply-branding; do
-    [[ -f "/usr/bin/$f" ]] && install -Dm755 "/usr/bin/$f" "$TARGET/usr/bin/$f"
+    [[ -f "$BIN_DIR/$f" ]] || { printf 'missing tool: %s/%s\n' "$BIN_DIR" "$f" >&2; return 1; }
+    install -Dm755 "$BIN_DIR/$f" "$TARGET/usr/bin/$f" || return 1
   done
 
-  install -dm755 "$TARGET/usr/share/nulllinux/roles"
-  cp -a /usr/share/nulllinux/roles/. "$TARGET/usr/share/nulllinux/roles/" 2>/dev/null || true
-  cp -a /usr/share/nulllinux/desktop-entries "$TARGET/usr/share/nulllinux/" 2>/dev/null || true
-  cp -a /usr/share/nulllinux/hooks "$TARGET/usr/share/nulllinux/" 2>/dev/null || true
-  cp -a /usr/share/desktop-directories/nulllinux-*.directory \
-        "$TARGET/usr/share/desktop-directories/" 2>/dev/null || true
-  install -Dm644 /usr/share/libalpm/hooks/nulllinux-desktop-entries.hook \
-        "$TARGET/usr/share/libalpm/hooks/nulllinux-desktop-entries.hook" 2>/dev/null || true
-  install -Dm644 /etc/xdg/menus/applications-merged/nulllinux-security.menu \
-        "$TARGET/etc/xdg/menus/applications-merged/nulllinux-security.menu" 2>/dev/null || true
-  cp -a /usr/share/wallpapers/NullLinux "$TARGET/usr/share/wallpapers/" 2>/dev/null || true
+  local d
+  for d in roles desktop-entries hooks; do
+    [[ -d "$DATA_DIR/$d" ]] || { printf 'missing data: %s/%s\n' "$DATA_DIR" "$d" >&2; return 1; }
+    install -dm755 "$TARGET/usr/share/nulllinux/$d"
+    cp -a "$DATA_DIR/$d/." "$TARGET/usr/share/nulllinux/$d/" || return 1
+  done
 
-  # SDDM: the installed system gets the theme, never the live autologin.
-  install -Dm644 "$SHARE_DIR/sddm.conf" "$TARGET/etc/sddm.conf.d/10-null-linux.conf"
+  install -dm755 "$TARGET/usr/share/desktop-directories"
+  cp -a /usr/share/desktop-directories/nulllinux-*.directory \
+        "$TARGET/usr/share/desktop-directories/" || return 1
+  install -Dm644 /usr/share/libalpm/hooks/nulllinux-desktop-entries.hook \
+        "$TARGET/usr/share/libalpm/hooks/nulllinux-desktop-entries.hook" || return 1
+  install -Dm644 /etc/xdg/menus/applications-merged/nulllinux-security.menu \
+        "$TARGET/etc/xdg/menus/applications-merged/nulllinux-security.menu" || return 1
+
+  # The full KDE skel, so the installed desktop matches the live one.
+  [[ -d "$SKEL_DIR" ]] || { printf 'missing skel: %s\n' "$SKEL_DIR" >&2; return 1; }
+  cp -a "$SKEL_DIR/." "$TARGET/etc/skel/" || return 1
+
+  # Optional: absent on a host that is not the live image, and not worth failing for.
+  cp -a /usr/share/wallpapers/NullLinux "$TARGET/usr/share/wallpapers/" 2>/dev/null || true
   install -Dm644 /etc/ssh/sshd_config.d/10-null-linux.conf \
         "$TARGET/etc/ssh/sshd_config.d/10-null-linux.conf" 2>/dev/null || true
 
-  # The full KDE skel, so the installed desktop matches the live one.
-  cp -a /etc/skel/. "$TARGET/etc/skel/" 2>/dev/null || true
-  rm -f "$TARGET/etc/skel/.config/autostart/null-setup.desktop"
-  install -Dm644 "/etc/skel/.config/autostart/null-setup.desktop" \
-        "$TARGET/etc/skel/.config/autostart/null-setup.desktop" 2>/dev/null || true
-
   if [[ "$ENABLE_THIRD_PARTY" == true ]]; then
-    cp -f /etc/pacman.conf "$TARGET/etc/pacman.conf"
+    cp -f /etc/pacman.conf "$TARGET/etc/pacman.conf" || return 1
     cp -f /etc/pacman.d/blackarch-mirrorlist "$TARGET/etc/pacman.d/" 2>/dev/null || true
     cp -f /etc/pacman.d/chaotic-mirrorlist "$TARGET/etc/pacman.d/" 2>/dev/null || true
   fi
@@ -369,6 +377,15 @@ verify_install() {
   [[ -d "$TARGET/home/${USERNAME_VALUE}" ]] || problems+=("user home missing")
   grep -q "^${USERNAME_VALUE}:" "$TARGET/etc/passwd" || problems+=("user not created")
   [[ -f "$TARGET/etc/sudoers.d/01-wheel" ]] || problems+=("sudo policy missing")
+  [[ -d "$TARGET/usr/share/nulllinux/roles" ]] && \
+    compgen -G "$TARGET/usr/share/nulllinux/roles/*.role" >/dev/null \
+    || problems+=("role data missing")
+  [[ -x "$TARGET/usr/bin/null-toolkit" ]] || problems+=("role manager missing")
+  [[ -f "$TARGET/etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc" ]] \
+    || problems+=("KDE panel layout missing")
+  [[ -f "$TARGET/usr/share/libalpm/hooks/nulllinux-desktop-entries.hook" ]] \
+    || problems+=("desktop entry hook missing")
+  [[ -e "$TARGET/etc/sudoers.d/10-null" ]] && problems+=("live passwordless sudo leaked")
 
   if [[ ${#problems[@]} -gt 0 ]]; then
     printf '%s\n' "${problems[@]}"
