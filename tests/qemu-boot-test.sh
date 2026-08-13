@@ -21,7 +21,8 @@ die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
 [[ -n "$ISO_PATH" ]] || ISO_PATH="$(find /var/tmp/nulllinux-out "$ROOT_DIR/out" -maxdepth 1 -name '*.iso' 2>/dev/null | head -1)"
 [[ -f "$ISO_PATH" ]] || die "ISO not found. Pass its path as the first argument."
-command -v qemu-system-x86_64 >/dev/null || die "qemu-system-x86_64 not installed"
+command -v qemu-system-x86_64 >/dev/null || die "qemu-system-x86_64 not installed (pacman -S qemu-system-x86)"
+command -v qemu-img >/dev/null || die "qemu-img not installed (pacman -S qemu-img)"
 [[ -f "$OVMF_CODE" ]] || die "OVMF firmware not found at $OVMF_CODE (pacman -S edk2-ovmf)"
 
 mkdir -p "$OUT_DIR"
